@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inscription – Gestion SET</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── CONFIG COULEURS ─────────────────────────────── */
+    :root {
+      --bg:        #f5f3ee;
+      --surface:   #ffffff;
+      --border:    #ddd8ce;
+      --accent:    #2d5a3d;
+      --accent-lt: #e8f0ea;
+      --text:      #1a1a1a;
+      --muted:     #6b6560;
+      --error:     #c0392b;
+      --success:   #2d5a3d;
+      --radius:    10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2.8rem;
+      width: 100%;
+      max-width: 640px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    }
+
+    /* ─── EN-TÊTE ─────────────────────────────────────── */
+    .header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+    .header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.9rem;
+      color: var(--accent);
+      letter-spacing: -.5px;
+      line-height: 1.15;
+    }
+    .header p { margin-top: .45rem; color: var(--muted); font-size: .93rem; }
+
+    /* ─── CHAMPS ──────────────────────────────────────── */
+    .field { margin-bottom: 1.3rem; }
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: .45rem;
+    }
+    label .req { color: var(--error); margin-left: 2px; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    textarea {
+      width: 100%;
+      padding: .72rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .97rem;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,90,61,.12);
+      background: #fff;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* ─── ATELIERS ────────────────────────────────────── */
+    .ateliers-section {
+      margin-top: 1.8rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.6rem;
+    }
+    .ateliers-section h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      color: var(--accent);
+      margin-bottom: .3rem;
+    }
+    .ateliers-hint { font-size: .85rem; color: var(--muted); margin-bottom: 1.1rem; }
+
+    #ateliers-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .55rem;
+    }
+
+    .atelier-item {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .65rem .9rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .atelier-item:hover { border-color: var(--accent); background: var(--accent-lt); }
+    .atelier-item.selected {
+      border-color: var(--accent);
+      background: var(--accent-lt);
+    }
+    .atelier-item input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .atelier-label { font-size: .9rem; font-weight: 500; line-height: 1.3; }
+
+    /* loader ateliers */
+    .loading-ateliers {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: var(--muted);
+      font-size: .9rem;
+      padding: 1.5rem;
+    }
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── BOUTON ──────────────────────────────────────── */
+    .submit-wrap {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 1rem;
+    }
+    button#submit-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: .85rem 2.2rem;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    button#submit-btn:hover { background: #1e4029; }
+    button#submit-btn:active { transform: scale(.98); }
+    button#submit-btn:disabled { background: #9ab5a4; cursor: not-allowed; }
+
+    /* ─── MESSAGES ────────────────────────────────────── */
+    #status-msg {
+      display: none;
+      padding: 1rem 1.2rem;
+      border-radius: var(--radius);
+      font-size: .93rem;
+      line-height: 1.5;
+      margin-top: 1.2rem;
+    }
+    #status-msg.success {
+      display: block;
+      background: #e8f5ec;
+      border: 1px solid #a8d5b5;
+      color: var(--success);
+    }
+    #status-msg.error {
+      display: block;
+      background: #fdecea;
+      border: 1px solid #f5b7b1;
+      color: var(--error);
+    }
+    #status-msg.info {
+      display: block;
+      background: #eef4fb;
+      border: 1px solid #b3d0ee;
+      color: #1a5276;
+    }
+
+    /* ─── PROGRESS ────────────────────────────────────── */
+    .progress-bar-wrap {
+      display: none;
+      background: var(--border);
+      border-radius: 99px;
+      height: 6px;
+      margin-top: 1rem;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      width: 0%;
+      transition: width .4s ease;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 1.8rem 1.3rem; }
+      .row { grid-template-columns: 1fr; }
+      #ateliers-list { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     ⚙️  CONFIGURATION — À COMPLÉTER AVANT UTILISATION
+     ══════════════════════════════════════════════════════ -->
+<script>
+  const CONFIG = {
+    // 👇 Votre token Airtable (Personal Access Token)
+    //    Airtable > Compte > Développeur > Personal access tokens
+    TOKEN: 'pat05rfaq3m3jvyS9.7d1051cfed23d99c0dd8a8d2b15c37ecb2558cb93b3bfa045bdce60079513994',
+
+    // L'ID de votre base Airtable
+    BASE_ID: 'appSpAPuylGFhWFTt',
+
+    // 👇 Noms exacts des tables dans Airtable (sensibles à la casse)
+    TABLE_MEMBRES:      'MEMBRES',
+    TABLE_ATELIERS:     'ATELIERS',
+    TABLE_INSCRIPTIONS: 'INSCRIPTIONS',
+  };
+</script>
+
+<div class="card">
+  <!-- En-tête -->
+  <div class="header">
+    <h1>Inscription aux ateliers</h1>
+    <p>Remplissez le formulaire ci-dessous. Un enregistrement sera créé dans Airtable pour chaque atelier sélectionné.</p>
+  </div>
+
+  <!-- Formulaire -->
+  <div class="row">
+    <div class="field">
+      <label>Nom <span class="req">*</span></label>
+      <input type="text" id="f-nom" placeholder="ex : Martin" required />
+    </div>
+    <div class="field">
+      <label>Prénom <span class="req">*</span></label>
+      <input type="text" id="f-prenom" placeholder="ex : Sophie" required />
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Email <span class="req">*</span></label>
+    <input type="email" id="f-email" placeholder="exemple@email.com" required />
+  </div>
+
+  <div class="field">
+    <label>Téléphone</label>
+    <input type="tel" id="f-telephone" placeholder="06 00 00 00 00" />
+  </div>
+
+  <div class="field">
+    <label>Notes</label>
+    <textarea id="f-notes" placeholder="Informations complémentaires…"></textarea>
+  </div>
+
+  <!-- Ateliers -->
+  <div class="ateliers-section">
+    <h2>Ateliers souhaités <span class="req" style="font-family:DM Sans;font-size:.9rem;">*</span></h2>
+    <p class="ateliers-hint">Sélectionnez au minimum 1 atelier. Vous pourrez modifier votre choix en cours d'année.</p>
+    <div id="ateliers-list">
+      <div class="loading-ateliers">
+        <span class="spinner"></span> Chargement des ateliers…
+      </div>
+    </div>
+  </div>
+
+  <!-- Barre de progression -->
+  <div class="progress-bar-wrap" id="progress-wrap">
+    <div class="progress-bar" id="progress-bar"></div>
+  </div>
+
+  <!-- Message statut -->
+  <div id="status-msg"></div>
+
+  <!-- Bouton -->
+  <div class="submit-wrap">
+    <button id="submit-btn" onclick="soumettreFormulaire()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Envoyer
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT
+     ══════════════════════════════════════════════════════ -->
+<script>
+/* ── Helpers API Airtable ──────────────────────────────── */
+const API = 'https://api.airtable.com/v0';
+
+async function airtableFetch(endpoint, options = {}) {
+  const res = await fetch(`${API}/${CONFIG.BASE_ID}/${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${CONFIG.TOKEN}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const detail = err.error?.message || JSON.stringify(err);
+    console.error('Airtable error', res.status, detail, 'endpoint:', endpoint, 'body:', options.body);
+    throw new Error(`[${res.status}] ${detail}`);
+  }
+  return res.json();
+}
+
+/* ── Chargement des ateliers au démarrage ────────────────
+   On récupère tous les enregistrements de la table ATELIERS
+   et on stocke leur { id, nom } pour les cases à cocher.      */
+let ateliersDisponibles = []; // { id, nom }
+
+async function chargerAteliers() {
+  try {
+    // On récupère jusqu'à 100 enregistrements, triés par Nom_Atelier
+    const data = await airtableFetch(
+      `${encodeURIComponent(CONFIG.TABLE_ATELIERS)}?sort[0][field]=Nom_Atelier&sort[0][direction]=asc`
+    );
+    ateliersDisponibles = data.records.map(r => ({
+      id:  r.id,
+      nom: r.fields['Nom_Atelier'] || r.fields['Name'] || '(sans nom)'
+    }));
+    afficherAteliers();
+  } catch (e) {
+    document.getElementById('ateliers-list').innerHTML =
+      `<div class="loading-ateliers" style="color:var(--error)">
+         ⚠️ Impossible de charger les ateliers.<br>
+         <small>Vérifiez votre TOKEN et BASE_ID dans la configuration.</small>
+       </div>`;
+  }
+}
+
+function afficherAteliers() {
+  const liste = document.getElementById('ateliers-list');
+  if (ateliersDisponibles.length === 0) {
+    liste.innerHTML = '<div class="loading-ateliers">Aucun atelier trouvé.</div>';
+    return;
+  }
+  liste.innerHTML = ateliersDisponibles.map(a => `
+    <label class="atelier-item" id="lbl-${a.id}">
+      <input type="checkbox" value="${a.id}" onchange="toggleAtelier('${a.id}', this)" />
+      <span class="atelier-label">${a.nom}</span>
+    </label>
+  `).join('');
+}
+
+function toggleAtelier(id, cb) {
+  document.getElementById('lbl-' + id).classList.toggle('selected', cb.checked);
+}
+
+/* ── Soumission du formulaire ────────────────────────────
+   Étapes :
+   1. Validation côté client
+   2. Création du membre dans TABLE_MEMBRES
+   3. Pour chaque atelier coché → création d'un enregistrement
+      dans TABLE_INSCRIPTIONS (lié au membre + à l'atelier)       */
+async function soumettreFormulaire() {
+  const btn = document.getElementById('submit-btn');
+  const statusEl = document.getElementById('status-msg');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressBar  = document.getElementById('progress-bar');
+
+  // ── 1. Lecture des valeurs ──────────────────────────
+  const nom       = document.getElementById('f-nom').value.trim();
+  const prenom    = document.getElementById('f-prenom').value.trim();
+  const email     = document.getElementById('f-email').value.trim();
+  const telephone = document.getElementById('f-telephone').value.trim();
+  const notes     = document.getElementById('f-notes').value.trim();
+
+  const ateliersCoches = [...document.querySelectorAll('#ateliers-list input[type="checkbox"]:checked')]
+                          .map(cb => cb.value);
+
+  // ── 2. Validation ───────────────────────────────────
+  statusEl.className = '';
+  statusEl.style.display = 'none';
+
+  if (!nom || !prenom || !email) {
+    afficherMessage('error', '⚠️ Veuillez remplir les champs obligatoires : Nom, Prénom et Email.');
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    afficherMessage('error', '⚠️ L\'adresse email semble incorrecte.');
+    return;
+  }
+  if (ateliersCoches.length === 0) {
+    afficherMessage('error', '⚠️ Veuillez sélectionner au moins un atelier.');
+    return;
+  }
+
+  // ── 3. Démarrage ────────────────────────────────────
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Envoi en cours…`;
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '0%';
+  afficherMessage('info', `⏳ Création du membre…`);
+
+  try {
+    // ── 4. Création du membre ──────────────────────────
+    const membreData = await airtableFetch(
+      encodeURIComponent(CONFIG.TABLE_MEMBRES),
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          fields: {
+            'Nom':    nom,
+            'Prénom': prenom,
+            'Email':  email,
+            ...(telephone && { 'Téléphone': telephone }),
+            ...(notes     && { 'Notes': notes }),
+          }
+        })
+      }
+    );
+
+    const membreId = membreData.id;
+    progressBar.style.width = '20%';
+
+    // ── 5. Création des inscriptions (une par atelier) ─
+    const total = ateliersCoches.length;
+    for (let i = 0; i < total; i++) {
+      const atelierId = ateliersCoches[i];
+      const nomAtelier = ateliersDisponibles.find(a => a.id === atelierId)?.nom || '';
+
+      afficherMessage('info', `⏳ Création de l'inscription ${i + 1} / ${total} — ${nomAtelier}…`);
+
+      const payload = {
+        fields: {
+          'Membre':  [membreId],
+          'Atelier': [atelierId],
+        }
+      };
+      console.log(`Inscription ${i+1}/${total} — payload:`, JSON.stringify(payload));
+
+      const inscResult = await airtableFetch(
+        encodeURIComponent(CONFIG.TABLE_INSCRIPTIONS),
+        { method: 'POST', body: JSON.stringify(payload) }
+      );
+      console.log(`Inscription ${i+1} créée:`, inscResult.id, '| Membre:', membreId, '| Atelier:', atelierId);
+
+      // Avancement : 20% pour le membre + 80% répartis entre les ateliers
+      progressBar.style.width = (20 + Math.round(80 * (i + 1) / total)) + '%';
+    }
+
+    // ── 6. Succès ──────────────────────────────────────
+    afficherMessage('success',
+      `✅ <strong>${prenom} ${nom}</strong> a bien été inscrit(e) à <strong>${total} atelier${total > 1 ? 's' : ''}</strong>.`
+    );
+    reinitialiserFormulaire();
+
+  } catch (err) {
+    afficherMessage('error', `❌ Une erreur est survenue : ${err.message}`);
+    progressWrap.style.display = 'none';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Envoyer`;
+}
+
+/* ── Utilitaires ──────────────────────────────────────── */
+function afficherMessage(type, html) {
+  const el = document.getElementById('status-msg');
+  el.className = type;
+  el.innerHTML = html;
+}
+
+function reinitialiserFormulaire() {
+  ['f-nom','f-prenom','f-email','f-telephone','f-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.querySelectorAll('#ateliers-list input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+  });
+  document.querySelectorAll('.atelier-item').forEach(el => el.classList.remove('selected'));
+}
+
+/* ── Lancement ────────────────────────────────────────── */
+chargerAteliers();
+</script>
+</body>
+</html>
