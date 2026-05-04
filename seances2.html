@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>Inscription aux séances – Gestion SET</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #f5f3ee;
+      --surface:   #ffffff;
+      --border:    #ddd8ce;
+      --accent:    #2d5a3d;
+      --accent-lt: #e8f0ea;
+      --text:      #1a1a1a;
+      --muted:     #6b6560;
+      --error:     #c0392b;
+      --radius:    10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2.8rem;
+      width: 100%;
+      max-width: 700px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    }
+
+    .header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+    .header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.9rem;
+      color: var(--accent);
+      letter-spacing: -.5px;
+    }
+    .header p { margin-top: .45rem; color: var(--muted); font-size: .93rem; }
+
+    /* ─── ÉTAPE ─────────────────────────────────── */
+    .etape {
+      display: none;
+    }
+    .etape.active { display: block; }
+
+    .etape-titre {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      color: var(--accent);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .etape-badge {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      font-size: .8rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+      flex-shrink: 0;
+    }
+
+    /* ─── CHAMPS ────────────────────────────────── */
+    .field { margin-bottom: 1.3rem; }
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: .45rem;
+    }
+    label .req { color: var(--error); margin-left: 2px; }
+
+    input[type="email"], input[type="text"] {
+      width: 100%;
+      padding: .72rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .97rem;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,90,61,.12);
+      background: #fff;
+    }
+
+    /* ─── MEMBRE TROUVÉ ─────────────────────────── */
+    .membre-card {
+      background: var(--accent-lt);
+      border: 1.5px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .membre-avatar {
+      width: 44px; height: 44px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .membre-infos { flex: 1; }
+    .membre-nom { font-weight: 600; font-size: 1rem; }
+    .membre-email { font-size: .85rem; color: var(--muted); }
+
+    /* ─── SÉANCES ───────────────────────────────── */
+    .seances-grid {
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .seance-item {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: .8rem 1rem;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      display: flex;
+      align-items: flex-start;
+      gap: .8rem;
+    }
+    .seance-item:hover { border-color: var(--accent); background: var(--accent-lt); }
+    .seance-item.selected { border-color: var(--accent); background: var(--accent-lt); }
+    .seance-item.complet {
+      opacity: .5;
+      cursor: not-allowed;
+      background: #f9f9f9;
+    }
+    .seance-item.deja-inscrit {
+      border-color: #a0c4a0;
+      background: #f0f8f0;
+      cursor: not-allowed;
+    }
+
+    .seance-item input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 3px;
+      cursor: pointer;
+    }
+
+    .seance-content { flex: 1; }
+    .seance-titre { font-weight: 600; font-size: .95rem; margin-bottom: .25rem; }
+    .seance-meta {
+      font-size: .82rem;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem .9rem;
+    }
+    .seance-meta span { display: flex; align-items: center; gap: .25rem; }
+
+    .badge-complet {
+      font-size: .72rem;
+      background: #fdecea;
+      color: var(--error);
+      border: 1px solid #f5b7b1;
+      padding: .15rem .5rem;
+      border-radius: 99px;
+      font-weight: 600;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .badge-inscrit {
+      font-size: .72rem;
+      background: #e8f5ec;
+      color: var(--accent);
+      border: 1px solid #a8d5b5;
+      padding: .15rem .5rem;
+      border-radius: 99px;
+      font-weight: 600;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    /* Filtre par atelier */
+    .filtre-wrap {
+      margin-bottom: 1rem;
+      display: flex;
+      gap: .5rem;
+      flex-wrap: wrap;
+    }
+    .filtre-btn {
+      padding: .35rem .85rem;
+      border-radius: 99px;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+      color: var(--text);
+    }
+    .filtre-btn:hover { border-color: var(--accent); }
+    .filtre-btn.actif { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .loading-seances {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem;
+      font-size: .9rem;
+    }
+
+    /* ─── BOUTONS ───────────────────────────────── */
+    .btn-wrap {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: .85rem 2rem;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .btn-primary:hover { background: #1e4029; }
+    .btn-primary:disabled { background: #9ab5a4; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      padding: .82rem 1.5rem;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── MESSAGES ──────────────────────────────── */
+    #status-msg {
+      display: none;
+      padding: 1rem 1.2rem;
+      border-radius: var(--radius);
+      font-size: .93rem;
+      line-height: 1.5;
+      margin-top: 1.2rem;
+    }
+    #status-msg.success { display: block; background: #e8f5ec; border: 1px solid #a8d5b5; color: var(--accent); }
+    #status-msg.error   { display: block; background: #fdecea; border: 1px solid #f5b7b1; color: var(--error); }
+    #status-msg.info    { display: block; background: #eef4fb; border: 1px solid #b3d0ee; color: #1a5276; }
+
+    .progress-bar-wrap { display: none; background: var(--border); border-radius: 99px; height: 6px; margin-top: 1rem; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: 99px; width: 0%; transition: width .4s ease; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    .spinner-dark { border: 2px solid var(--border); border-top-color: var(--accent); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .aucune-seance { text-align: center; color: var(--muted); padding: 2rem; font-size: .95rem; }
+
+    @media (max-width: 520px) {
+      .card { padding: 1.8rem 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<script>
+  const CONFIG = {
+    TOKEN:   'pat05rfaq3m3jvyS9.7d1051cfed23d99c0dd8a8d2b15c37ecb2558cb93b3bfa045bdce60079513994',
+    BASE_ID: 'appSpAPuylGFhWFTt',
+    TABLE_MEMBRES:             'MEMBRES',
+    TABLE_SEANCES:             'SEANCES',
+    TABLE_INSCRIPTIONS_SEANCES:'INSCRIPTIONS_SEANCES',
+  };
+</script>
+
+<div class="card">
+  <div class="header">
+    <h1>Inscription aux séances</h1>
+    <p>Trouvez votre compte via votre email, puis choisissez les séances auxquelles vous souhaitez vous inscrire.</p>
+  </div>
+
+  <!-- ── ÉTAPE 1 : Email ───────────────────────── -->
+  <div class="etape active" id="etape-1">
+    <div class="etape-titre">
+      <span class="etape-badge">1</span>
+      Votre adresse email
+    </div>
+
+    <div class="field">
+      <label>Email <span class="req">*</span></label>
+      <input type="email" id="f-email" placeholder="votre@email.com" />
+    </div>
+
+    <div id="status-msg"></div>
+
+    <div class="btn-wrap" style="justify-content:flex-end">
+      <button class="btn-primary" id="btn-chercher" onclick="chercherMembre()">
+        Rechercher
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ÉTAPE 2 : Séances ─────────────────────── -->
+  <div class="etape" id="etape-2">
+    <div class="etape-titre">
+      <span class="etape-badge">2</span>
+      Choisissez vos séances
+    </div>
+
+    <!-- Carte membre -->
+    <div class="membre-card" id="membre-card">
+      <div class="membre-avatar" id="membre-avatar">G</div>
+      <div class="membre-infos">
+        <div class="membre-nom" id="membre-nom">—</div>
+        <div class="membre-email" id="membre-email-display">—</div>
+      </div>
+    </div>
+
+    <!-- Filtre ateliers -->
+    <div class="filtre-wrap" id="filtre-ateliers"></div>
+
+    <!-- Liste séances -->
+    <div id="seances-list">
+      <div class="loading-seances"><span class="spinner spinner-dark"></span> Chargement des séances…</div>
+    </div>
+
+    <div id="status-msg-2" style="display:none; padding:1rem 1.2rem; border-radius:10px; font-size:.93rem; margin-top:.5rem;"></div>
+
+    <div class="progress-bar-wrap" id="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+
+    <div class="btn-wrap">
+      <button class="btn-secondary" onclick="retourEtape1()">← Modifier l'email</button>
+      <button class="btn-primary" id="btn-inscrire" onclick="soumettreInscriptions()">
+        Confirmer les inscriptions
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── État global ─────────────────────────────── */
+let membreActuel   = null;  // { id, nom, prenom, email }
+let seancesChargees = [];   // liste complète des séances futures
+let inscriptionsExistantes = new Set(); // IDs séances déjà inscrites
+
+/* ── Helpers API ─────────────────────────────── */
+const API = 'https://api.airtable.com/v0';
+
+async function airtableFetch(endpoint, options = {}) {
+  const res = await fetch(`${API}/${CONFIG.BASE_ID}/${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${CONFIG.TOKEN}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const detail = err.error?.message || JSON.stringify(err);
+    throw new Error(`[${res.status}] ${detail}`);
+  }
+  return res.json();
+}
+
+/* ── Utilitaires ─────────────────────────────── */
+function afficherStatus(id, type, html) {
+  const el = document.getElementById(id);
+  el.className = type;
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+function cacherStatus(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function formaterDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+function formaterHeure(iso) {
+  const d = new Date(iso);
+  return d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+}
+
+/* ── ÉTAPE 1 : Recherche membre par email ────── */
+async function chercherMembre() {
+  const email = document.getElementById('f-email').value.trim();
+  const btn   = document.getElementById('btn-chercher');
+
+  cacherStatus('status-msg');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    afficherStatus('status-msg', 'error', '⚠️ Veuillez saisir une adresse email valide.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Recherche…`;
+
+  try {
+    const formule = `{Email}="${email}"`;
+    const url = `${encodeURIComponent(CONFIG.TABLE_MEMBRES)}?filterByFormula=${encodeURIComponent(formule)}`;
+    const data = await airtableFetch(url);
+
+    if (!data.records || data.records.length === 0) {
+      afficherStatus('status-msg', 'error',
+        `❌ Aucun membre trouvé pour <strong>${email}</strong>.<br>
+         <small>Vérifiez l'adresse ou inscrivez-vous d'abord via le formulaire d'adhésion.</small>`);
+      btn.disabled = false;
+      btn.innerHTML = `Rechercher <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
+      return;
+    }
+
+    const r = data.records[0];
+    membreActuel = {
+      id:     r.id,
+      nom:    r.fields['Nom']    || '',
+      prenom: r.fields['Prénom'] || '',
+      email:  r.fields['Email']  || email,
+    };
+
+    // Mise à jour affichage carte membre
+    const initiales = (membreActuel.prenom[0] || '') + (membreActuel.nom[0] || '');
+    document.getElementById('membre-avatar').textContent       = initiales.toUpperCase();
+    document.getElementById('membre-nom').textContent          = `${membreActuel.prenom} ${membreActuel.nom}`;
+    document.getElementById('membre-email-display').textContent = membreActuel.email;
+
+    // Charger les inscriptions existantes pour ce membre
+    await chargerInscriptionsExistantes();
+
+    // Charger les séances futures
+    await chargerSeances();
+
+    // Passer à l'étape 2
+    document.getElementById('etape-1').classList.remove('active');
+    document.getElementById('etape-2').classList.add('active');
+
+  } catch(e) {
+    afficherStatus('status-msg', 'error', `❌ Erreur : ${e.message}`);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `Rechercher <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
+}
+
+/* ── Chargement des inscriptions existantes ──── */
+async function chargerInscriptionsExistantes() {
+  inscriptionsExistantes.clear();
+  try {
+    // Récupère les inscriptions_seances liées à ce membre
+    const formule = `FIND("${membreActuel.id}", ARRAYJOIN({MEMBRES}))`;
+    const url = `${encodeURIComponent(CONFIG.TABLE_INSCRIPTIONS_SEANCES)}?filterByFormula=${encodeURIComponent(formule)}`;
+    const data = await airtableFetch(url);
+    (data.records || []).forEach(r => {
+      const seances = r.fields['SEANCES'] || [];
+      seances.forEach(sid => inscriptionsExistantes.add(sid));
+    });
+  } catch(e) {
+    console.warn('Inscriptions existantes non chargées:', e.message);
+  }
+}
+
+/* ── Chargement des séances futures ──────────── */
+async function chargerSeances() {
+  document.getElementById('seances-list').innerHTML =
+    '<div class="loading-seances"><span class="spinner spinner-dark"></span> Chargement des séances…</div>';
+  document.getElementById('filtre-ateliers').innerHTML = '';
+
+  try {
+    const aujourd_hui = new Date().toISOString();
+    // Filtre : séances dont Date_Heure >= aujourd'hui ET statut Programmée
+    const formule = `AND(IS_AFTER({Date_Heure}, "${aujourd_hui}"), OR({Statut}="Programmée", {Statut}=""))`;
+    const url = `${encodeURIComponent(CONFIG.TABLE_SEANCES)}`
+      + `?filterByFormula=${encodeURIComponent(formule)}`
+      + `&sort[0][field]=Date_Heure&sort[0][direction]=asc`
+      + `&fields[]=Date_Heure&fields[]=Nom_Atelier&fields[]=Lieu`
+      + `&fields[]=Durée_Minutes&fields[]=Places_Limitées`
+      + `&fields[]=S%C3%A9ance_Compl%C3%A8te&fields[]=Places_Max`
+      + `&fields[]=Titre%20s%C3%A9ance&fields[]=Statut&fields[]=Description`;
+
+    const data = await airtableFetch(url);
+    seancesChargees = data.records || [];
+
+    afficherSeances(seancesChargees);
+    construireFiltres(seancesChargees);
+
+  } catch(e) {
+    document.getElementById('seances-list').innerHTML =
+      `<div class="loading-seances" style="color:var(--error)">⚠️ Impossible de charger les séances : ${e.message}</div>`;
+  }
+}
+
+/* ── Affichage des séances ───────────────────── */
+let filtreActif = 'Tous';
+
+function afficherSeances(seances) {
+  const liste = document.getElementById('seances-list');
+
+  // Nom_Atelier est un lookup (tableau) → on prend le premier élément
+  const getAtelier = s => {
+    const v = s.fields['Nom_Atelier'];
+    return Array.isArray(v) ? (v[0] || '') : (v || '');
+  };
+  const filtrees = filtreActif === 'Tous'
+    ? seances
+    : seances.filter(s => getAtelier(s) === filtreActif);
+
+  if (filtrees.length === 0) {
+    liste.innerHTML = '<div class="aucune-seance">Aucune séance disponible pour cet atelier.</div>';
+    return;
+  }
+
+  liste.innerHTML = `<div class="seances-grid">${filtrees.map(s => {
+    const f = s.fields;
+    const atelierVal     = Array.isArray(f['Nom_Atelier']) ? f['Nom_Atelier'][0] : (f['Nom_Atelier'] || '');
+    const placesLimitees = f['Places_Limitées'] === true;
+    const placesMax      = f['Places_Max'] || 0;
+    // Utilise directement le champ calculé par Airtable (chaîne "COMPLET" ou "Places dispo")
+    const seanceComplete = f['Séance_Complète'] || '';
+    const complet        = seanceComplete === 'COMPLET';
+    const dejaInscrit    = inscriptionsExistantes.has(s.id);
+    const titre     = f['Titre séance'] || atelierVal || 'Séance';
+    const date      = f['Date_Heure'] ? formaterDate(f['Date_Heure']) : '—';
+    const heure     = f['Date_Heure'] ? formaterHeure(f['Date_Heure']) : '';
+    const lieu      = f['Lieu'] || '';
+    const duree     = f['Durée_Minutes'] ? `${f['Durée_Minutes']} min` : '';
+    const atelier   = atelierVal;
+
+    // Indicateur places
+    let infosPlaces = '';
+    if (placesLimitees) {
+      infosPlaces = complet
+        ? `<span style="color:var(--error)">🔴 Complet</span>`
+        : placesMax > 0
+          ? `<span style="color:var(--accent)">🟢 Places disponibles (max ${placesMax})</span>`
+          : `<span style="color:var(--accent)">🟢 Places disponibles</span>`;
+    }
+
+    let classeExtra = '';
+    let badge = '';
+    if (dejaInscrit) { classeExtra = 'deja-inscrit'; badge = '<span class="badge-inscrit">✓ Déjà inscrit</span>'; }
+    else if (complet) { classeExtra = 'complet'; badge = '<span class="badge-complet">Complet</span>'; }
+
+    const disabled = complet || dejaInscrit;
+
+    return `<label class="seance-item ${classeExtra}" id="lbl-${s.id}">
+      <input type="checkbox" value="${s.id}"
+        ${disabled ? 'disabled' : ''}
+        onchange="toggleSeance('${s.id}', this)" />
+      <div class="seance-content">
+        <div class="seance-titre">${titre}</div>
+        <div class="seance-meta">
+          <span>📅 ${date}</span>
+          ${heure ? `<span>🕐 ${heure}</span>` : ''}
+          ${lieu  ? `<span>📍 ${lieu}</span>`  : ''}
+          ${duree ? `<span>⏱ ${duree}</span>`  : ''}
+          ${infosPlaces ? `<span>${infosPlaces}</span>` : ''}
+        </div>
+      </div>
+      ${badge}
+    </label>`;
+  }).join('')}</div>`;
+}
+
+function toggleSeance(id, cb) {
+  document.getElementById('lbl-' + id).classList.toggle('selected', cb.checked);
+}
+
+/* ── Filtres par atelier ─────────────────────── */
+function construireFiltres(seances) {
+  // Extraction sécurisée du nom atelier (lookup = tableau)
+  const getAtel = s => {
+    const v = s.fields['Nom_Atelier'];
+    return Array.isArray(v) ? (v[0] || '') : (v || '');
+  };
+  const ateliers = [...new Set(seances.map(getAtel).filter(Boolean))].sort();
+  const wrap = document.getElementById('filtre-ateliers');
+
+  if (ateliers.length <= 1) return;
+
+  // Utilise data-atelier pour éviter les problèmes de quotes/accents dans onclick
+  wrap.innerHTML = [
+    `<button class="filtre-btn actif" data-atelier="Tous">Tous</button>`,
+    ...ateliers.map(a => `<button class="filtre-btn" data-atelier="${a.replace(/"/g,'&quot;')}">${a}</button>`)
+  ].join('');
+
+  // Événement délégué sur le conteneur
+  wrap.addEventListener('click', e => {
+    const btn = e.target.closest('.filtre-btn');
+    if (!btn) return;
+    filtreActif = btn.dataset.atelier;
+    document.querySelectorAll('.filtre-btn').forEach(b => b.classList.remove('actif'));
+    btn.classList.add('actif');
+    afficherSeances(seancesChargees);
+  });
+}
+
+function filtrer(atelier, btn) {
+  filtreActif = atelier;
+  document.querySelectorAll('.filtre-btn').forEach(b => b.classList.remove('actif'));
+  btn.classList.add('actif');
+  afficherSeances(seancesChargees);
+}
+
+/* ── Retour étape 1 ──────────────────────────── */
+function retourEtape1() {
+  membreActuel = null;
+  seancesChargees = [];
+  inscriptionsExistantes.clear();
+  filtreActif = 'Tous';
+  cacherStatus('status-msg-2');
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('etape-2').classList.remove('active');
+  document.getElementById('etape-1').classList.add('active');
+}
+
+/* ── Soumission inscriptions ─────────────────── */
+async function soumettreInscriptions() {
+  const btn = document.getElementById('btn-inscrire');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressBar  = document.getElementById('progress-bar');
+
+  cacherStatus('status-msg-2');
+
+  const seancesChoisies = [...document.querySelectorAll('#seances-list input[type="checkbox"]:checked')]
+    .map(cb => cb.value);
+
+  if (seancesChoisies.length === 0) {
+    afficherStatus('status-msg-2', 'error', '⚠️ Veuillez sélectionner au moins une séance.');
+    document.getElementById('status-msg-2').style.display = 'block';
+    document.getElementById('status-msg-2').className = 'error';
+    document.getElementById('status-msg-2').style.cssText = 'display:block;padding:1rem 1.2rem;border-radius:10px;font-size:.93rem;margin-top:.5rem;background:#fdecea;border:1px solid #f5b7b1;color:var(--error)';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Inscription en cours…`;
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  const aujourd_hui = new Date().toISOString().split('T')[0];
+  const total = seancesChoisies.length;
+
+  try {
+    const erreurs = [];
+
+    for (let i = 0; i < total; i++) {
+      const seanceId = seancesChoisies[i];
+      const seance   = seancesChargees.find(s => s.id === seanceId);
+      const f = seance?.fields || {};
+      const atelierVal = Array.isArray(f['Nom_Atelier']) ? f['Nom_Atelier'][0] : (f['Nom_Atelier'] || '');
+      const titreSeance = f['Titre séance'] || atelierVal || 'Séance';
+
+      // ── Vérification via champ Séance_Complète (calculé par Airtable) ──
+      const seanceComplete = f['Séance_Complète'] || '';
+      if (seanceComplete === 'COMPLET') {
+        erreurs.push(`❌ <strong>${titreSeance}</strong> — séance complète, inscription impossible.`);
+        progressBar.style.width = Math.round(100 * (i + 1) / total) + '%';
+        continue; // on saute cette séance
+      }
+
+      // Affichage progression
+      const msgEl = document.getElementById('status-msg-2');
+      msgEl.style.cssText = 'display:block;padding:1rem 1.2rem;border-radius:10px;font-size:.93rem;margin-top:.5rem;background:#eef4fb;border:1px solid #b3d0ee;color:#1a5276';
+      msgEl.innerHTML = `⏳ Inscription ${i + 1}/${total} — ${titreSeance}…`;
+
+      await airtableFetch(
+        encodeURIComponent(CONFIG.TABLE_INSCRIPTIONS_SEANCES),
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            fields: {
+              'MEMBRES':          [membreActuel.id],
+              'SEANCES':          [seanceId],
+              'Date_Inscription': aujourd_hui,
+              'Statut':           'Inscrit',
+              'Adresse_Mail':     membreActuel.email,
+            }
+          })
+        }
+      );
+
+      progressBar.style.width = Math.round(100 * (i + 1) / total) + '%';
+    }
+
+    // Succès + éventuels refus
+    const nbInscrits = total - erreurs.length;
+    const msgEl = document.getElementById('status-msg-2');
+    let msgHtml = '';
+    if (nbInscrits > 0) {
+      msgHtml += `✅ <strong>${membreActuel.prenom} ${membreActuel.nom}</strong> inscrit(e) à <strong>${nbInscrits} séance${nbInscrits > 1 ? 's' : ''}</strong> avec succès !`;
+    }
+    if (erreurs.length > 0) {
+      msgHtml += `${nbInscrits > 0 ? '<br><br>' : ''}⚠️ ${erreurs.length} séance${erreurs.length > 1 ? 's' : ''} non inscrite${erreurs.length > 1 ? 's' : ''} :<br>` + erreurs.join('<br>');
+      msgEl.style.cssText = nbInscrits > 0
+        ? 'display:block;padding:1rem 1.2rem;border-radius:10px;font-size:.93rem;margin-top:.5rem;background:#fef9e7;border:1px solid #f9e79f;color:#7d6608'
+        : 'display:block;padding:1rem 1.2rem;border-radius:10px;font-size:.93rem;margin-top:.5rem;background:#fdecea;border:1px solid #f5b7b1;color:var(--error)';
+    } else {
+      msgEl.style.cssText = 'display:block;padding:1rem 1.2rem;border-radius:10px;font-size:.93rem;margin-top:.5rem;background:#e8f5ec;border:1px solid #a8d5b5;color:var(--accent)';
+    }
+    msgEl.innerHTML = msgHtml;
+
+    // Réinitialiser les cases à cocher et recharger
+    await chargerInscriptionsExistantes();
+    afficherSeances(seancesChargees);
+
+  } catch(e) {
+    const msgEl = document.getElementById('status-msg-2');
+    msgEl.style.cssText = 'display:block;padding:1rem 1.2rem;border-radius:10px;font-size:.93rem;margin-top:.5rem;background:#fdecea;border:1px solid #f5b7b1;color:var(--error)';
+    msgEl.innerHTML = `❌ Erreur : ${e.message}`;
+    progressWrap.style.display = 'none';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `Confirmer les inscriptions <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+}
+
+/* ── Touche Entrée sur le champ email ────────── */
+document.getElementById('f-email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') chercherMembre();
+});
+</script>
+</body>
+</html>
