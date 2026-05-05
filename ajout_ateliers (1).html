@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>Ajout d'ateliers – Gestion SET</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #f5f3ee;
+      --surface:   #ffffff;
+      --border:    #ddd8ce;
+      --accent:    #2d5a3d;
+      --accent-lt: #e8f0ea;
+      --text:      #1a1a1a;
+      --muted:     #6b6560;
+      --error:     #c0392b;
+      --radius:    10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2.8rem;
+      width: 100%;
+      max-width: 680px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    }
+
+    .header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+    .header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.9rem;
+      color: var(--accent);
+      letter-spacing: -.5px;
+    }
+    .header p { margin-top: .45rem; color: var(--muted); font-size: .93rem; }
+
+    /* ─── ÉTAPES ────────────────────────────── */
+    .etape { display: none; }
+    .etape.active { display: block; }
+
+    .etape-titre {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      color: var(--accent);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .etape-badge {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      font-size: .8rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+      flex-shrink: 0;
+    }
+
+    /* ─── CHAMPS ────────────────────────────── */
+    .field { margin-bottom: 1.3rem; }
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: .45rem;
+    }
+    label .req { color: var(--error); margin-left: 2px; }
+    input[type="email"] {
+      width: 100%;
+      padding: .72rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .97rem;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(45,90,61,.12);
+      background: #fff;
+    }
+
+    /* ─── CARTE MEMBRE ──────────────────────── */
+    .membre-card {
+      background: var(--accent-lt);
+      border: 1.5px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.8rem;
+    }
+    .membre-avatar {
+      width: 44px; height: 44px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .membre-nom { font-weight: 600; font-size: 1rem; }
+    .membre-email-disp { font-size: .85rem; color: var(--muted); }
+    .membre-ateliers-actuels {
+      font-size: .82rem;
+      color: var(--accent);
+      margin-top: .3rem;
+      font-style: italic;
+    }
+
+    /* ─── ATELIERS ──────────────────────────── */
+    .ateliers-section { margin-top: .5rem; }
+    .ateliers-hint { font-size: .85rem; color: var(--muted); margin-bottom: 1rem; }
+
+    #ateliers-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .55rem;
+    }
+
+    .atelier-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .65rem;
+      padding: .7rem .9rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .atelier-item:hover:not(.deja-inscrit) { border-color: var(--accent); background: var(--accent-lt); }
+    .atelier-item.selected { border-color: var(--accent); background: var(--accent-lt); }
+    .atelier-item.deja-inscrit {
+      background: #f4faf5;
+      border-color: #a8d5b5;
+      cursor: not-allowed;
+      opacity: .75;
+    }
+
+    .atelier-item input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+      cursor: pointer;
+    }
+    .atelier-label { font-size: .9rem; font-weight: 500; line-height: 1.3; flex: 1; }
+
+    .badge-inscrit {
+      font-size: .7rem;
+      background: #e8f5ec;
+      color: var(--accent);
+      border: 1px solid #a8d5b5;
+      padding: .1rem .4rem;
+      border-radius: 99px;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+
+    .loading-ateliers {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: var(--muted);
+      padding: 1.5rem;
+      font-size: .9rem;
+    }
+
+    /* ─── BOUTONS ───────────────────────────── */
+    .btn-wrap {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: .85rem 2rem;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .btn-primary:hover { background: #1e4029; }
+    .btn-primary:disabled { background: #9ab5a4; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      padding: .82rem 1.5rem;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── MESSAGES ──────────────────────────── */
+    .msg {
+      display: none;
+      padding: 1rem 1.2rem;
+      border-radius: var(--radius);
+      font-size: .93rem;
+      line-height: 1.5;
+      margin-top: 1rem;
+    }
+    .msg.success { display: block; background: #e8f5ec; border: 1px solid #a8d5b5; color: var(--accent); }
+    .msg.error   { display: block; background: #fdecea; border: 1px solid #f5b7b1; color: var(--error); }
+    .msg.info    { display: block; background: #eef4fb; border: 1px solid #b3d0ee; color: #1a5276; }
+    .msg.warning { display: block; background: #fef9e7; border: 1px solid #f9e79f; color: #7d6608; }
+
+    .progress-bar-wrap { display: none; background: var(--border); border-radius: 99px; height: 6px; margin-top: 1rem; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: 99px; width: 0%; transition: width .4s ease; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    .spinner-dark { border-color: var(--border); border-top-color: var(--accent); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 520px) {
+      .card { padding: 1.8rem 1.3rem; }
+      #ateliers-list { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<script>
+  const CONFIG = {
+    TOKEN:              'pat05rfaq3m3jvyS9.7d1051cfed23d99c0dd8a8d2b15c37ecb2558cb93b3bfa045bdce60079513994',
+    BASE_ID:            'appSpAPuylGFhWFTt',
+    TABLE_MEMBRES:      'MEMBRES',
+    TABLE_ATELIERS:     'ATELIERS',
+    TABLE_INSCRIPTIONS: 'INSCRIPTIONS',
+  };
+</script>
+
+<div class="card">
+  <div class="header">
+    <h1>Ajout d'ateliers</h1>
+    <p>Retrouvez votre compte via votre email, puis choisissez les nouveaux ateliers auxquels vous souhaitez adhérer.</p>
+  </div>
+
+  <!-- ── ÉTAPE 1 : Email ─────────────────── -->
+  <div class="etape active" id="etape-1">
+    <div class="etape-titre">
+      <span class="etape-badge">1</span>
+      Votre adresse email
+    </div>
+
+    <div class="field">
+      <label>Email <span class="req">*</span></label>
+      <input type="email" id="f-email" placeholder="votre@email.com" />
+    </div>
+
+    <div id="msg-1" class="msg"></div>
+
+    <div class="btn-wrap" style="justify-content:flex-end">
+      <button class="btn-primary" id="btn-chercher" onclick="chercherMembre()">
+        Rechercher
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ÉTAPE 2 : Ateliers ──────────────── -->
+  <div class="etape" id="etape-2">
+    <div class="etape-titre">
+      <span class="etape-badge">2</span>
+      Choisissez vos nouveaux ateliers
+    </div>
+
+    <!-- Carte membre -->
+    <div class="membre-card">
+      <div class="membre-avatar" id="membre-avatar">?</div>
+      <div>
+        <div class="membre-nom" id="membre-nom">—</div>
+        <div class="membre-email-disp" id="membre-email-disp">—</div>
+        <div class="membre-ateliers-actuels" id="membre-ateliers-actuels"></div>
+      </div>
+    </div>
+
+    <div class="ateliers-section">
+      <p class="ateliers-hint">
+        Les ateliers auxquels vous êtes <strong>déjà inscrit(e)</strong> sont indiqués en vert et non sélectionnables.
+        Cochez uniquement les <strong>nouveaux ateliers</strong> souhaités.
+      </p>
+      <div id="ateliers-list">
+        <div class="loading-ateliers"><span class="spinner spinner-dark"></span> Chargement…</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap" id="progress-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <div id="msg-2" class="msg"></div>
+
+    <div class="btn-wrap">
+      <button class="btn-secondary" onclick="retourEtape1()">← Modifier l'email</button>
+      <button class="btn-primary" id="btn-ajouter" onclick="soumettreNouveauxAteliers()">
+        Confirmer les ajouts
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── État global ─────────────────────────────── */
+let membreActuel      = null;   // { id, nom, prenom, email }
+let ateliersDispos    = [];     // tous les ateliers { id, nom }
+let inscriptionsExist = new Set(); // IDs ateliers déjà inscrits pour ce membre
+
+/* ── API helper ──────────────────────────────── */
+const API = 'https://api.airtable.com/v0';
+
+async function airtableFetch(endpoint, options = {}) {
+  const res = await fetch(`${API}/${CONFIG.BASE_ID}/${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${CONFIG.TOKEN}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`[${res.status}] ${err.error?.message || JSON.stringify(err)}`);
+  }
+  return res.json();
+}
+
+function afficherMsg(id, type, html) {
+  const el = document.getElementById(id);
+  el.className = `msg ${type}`;
+  el.innerHTML = html;
+}
+function cacherMsg(id) {
+  document.getElementById(id).className = 'msg';
+}
+
+/* ── ÉTAPE 1 : Recherche membre ──────────────── */
+async function chercherMembre() {
+  const email = document.getElementById('f-email').value.trim();
+  const btn   = document.getElementById('btn-chercher');
+  cacherMsg('msg-1');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    afficherMsg('msg-1', 'error', '⚠️ Veuillez saisir une adresse email valide.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Recherche…`;
+
+  try {
+    const url = `${encodeURIComponent(CONFIG.TABLE_MEMBRES)}`
+      + `?filterByFormula=${encodeURIComponent(`{Email}="${email}"`)}`;
+    const data = await airtableFetch(url);
+
+    if (!data.records || data.records.length === 0) {
+      afficherMsg('msg-1', 'error',
+        `❌ Aucun membre trouvé pour <strong>${email}</strong>.<br>
+         <small>Vérifiez l'adresse ou inscrivez-vous d'abord via le formulaire d'adhésion.</small>`);
+      btn.disabled = false;
+      btn.innerHTML = `Rechercher <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
+      return;
+    }
+
+    const r = data.records[0];
+    membreActuel = {
+      id:     r.id,
+      nom:    r.fields['Nom']    || '',
+      prenom: r.fields['Prénom'] || '',
+      email:  r.fields['Email']  || email,
+    };
+
+    // Affichage carte membre
+    const initiales = ((membreActuel.prenom[0] || '') + (membreActuel.nom[0] || '')).toUpperCase();
+    document.getElementById('membre-avatar').textContent    = initiales;
+    document.getElementById('membre-nom').textContent       = `${membreActuel.prenom} ${membreActuel.nom}`;
+    document.getElementById('membre-email-disp').textContent = membreActuel.email;
+
+    // Charger inscriptions existantes + ateliers
+    await Promise.all([
+      chargerInscriptionsExistantes(),
+      chargerAteliers()
+    ]);
+
+    afficherAteliers();
+
+    document.getElementById('etape-1').classList.remove('active');
+    document.getElementById('etape-2').classList.add('active');
+
+  } catch(e) {
+    afficherMsg('msg-1', 'error', `❌ Erreur : ${e.message}`);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `Rechercher <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
+}
+
+/* ── Chargement des inscriptions existantes ──── */
+async function chargerInscriptionsExistantes() {
+  inscriptionsExist.clear();
+  try {
+    // Filtre direct sur le champ Membre (linked record)
+    // On pagine si nécessaire (max 100 par page)
+    let offset = '';
+    do {
+      const url = `${encodeURIComponent(CONFIG.TABLE_INSCRIPTIONS)}`
+        + `?fields[]=Membre&fields[]=Atelier`
+        + (offset ? `&offset=${offset}` : '');
+      const data = await airtableFetch(url);
+
+      (data.records || []).forEach(r => {
+        const membres = r.fields['Membre'] || [];
+        // Si ce membre est dans la liste des membres liés
+        if (membres.includes(membreActuel.id)) {
+          const ateliers = r.fields['Atelier'] || [];
+          ateliers.forEach(aid => inscriptionsExist.add(aid));
+        }
+      });
+
+      offset = data.offset || '';
+    } while (offset);
+
+    console.log(`✅ ${inscriptionsExist.size} atelier(s) déjà inscrit(s):`, [...inscriptionsExist]);
+  } catch(e) {
+    console.warn('Inscriptions existantes non chargées:', e.message);
+  }
+}
+
+/* ── Chargement de tous les ateliers ─────────── */
+async function chargerAteliers() {
+  const url = `${encodeURIComponent(CONFIG.TABLE_ATELIERS)}`
+    + `?sort[0][field]=Nom_Atelier&sort[0][direction]=asc`;
+  const data = await airtableFetch(url);
+  ateliersDispos = (data.records || []).map(r => ({
+    id:  r.id,
+    nom: r.fields['Nom_Atelier'] || '(sans nom)',
+  }));
+}
+
+/* ── Affichage des ateliers ──────────────────── */
+function afficherAteliers() {
+  const liste = document.getElementById('ateliers-list');
+
+  if (ateliersDispos.length === 0) {
+    liste.innerHTML = '<div class="loading-ateliers">Aucun atelier disponible.</div>';
+    return;
+  }
+
+  // Résumé des ateliers déjà inscrits pour la carte membre
+  const nomsDejaInscrits = ateliersDispos
+    .filter(a => inscriptionsExist.has(a.id))
+    .map(a => a.nom);
+  const resumeEl = document.getElementById('membre-ateliers-actuels');
+  resumeEl.textContent = nomsDejaInscrits.length > 0
+    ? `Inscrit(e) à : ${nomsDejaInscrits.join(', ')}`
+    : 'Pas encore inscrit(e) à un atelier';
+
+  liste.innerHTML = ateliersDispos.map(a => {
+    const dejaInscrit = inscriptionsExist.has(a.id);
+    return `
+      <label class="atelier-item${dejaInscrit ? ' deja-inscrit' : ''}" id="lbl-${a.id}">
+        <input type="checkbox" value="${a.id}"
+          ${dejaInscrit ? 'disabled' : ''}
+          onchange="toggleAtelier('${a.id}', this)" />
+        <span class="atelier-label">${a.nom}</span>
+        ${dejaInscrit ? '<span class="badge-inscrit">✓ Inscrit</span>' : ''}
+      </label>`;
+  }).join('');
+}
+
+function toggleAtelier(id, cb) {
+  document.getElementById('lbl-' + id).classList.toggle('selected', cb.checked);
+}
+
+/* ── Retour étape 1 ──────────────────────────── */
+function retourEtape1() {
+  membreActuel = null;
+  inscriptionsExist.clear();
+  ateliersDispos = [];
+  cacherMsg('msg-2');
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('etape-2').classList.remove('active');
+  document.getElementById('etape-1').classList.add('active');
+}
+
+/* ── Soumission des nouveaux ateliers ─────────── */
+async function soumettreNouveauxAteliers() {
+  const btn = document.getElementById('btn-ajouter');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressBar  = document.getElementById('progress-bar');
+  cacherMsg('msg-2');
+
+  const ateliersChoisis = [...document.querySelectorAll('#ateliers-list input[type="checkbox"]:checked')]
+    .map(cb => cb.value);
+
+  if (ateliersChoisis.length === 0) {
+    afficherMsg('msg-2', 'error', '⚠️ Veuillez sélectionner au moins un nouvel atelier.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Enregistrement…`;
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  const aujourd_hui = new Date().toISOString().split('T')[0];
+  const total = ateliersChoisis.length;
+  let nbCrees = 0;
+  let nbDoublons = 0;
+
+  try {
+    for (let i = 0; i < total; i++) {
+      const atelierId = ateliersChoisis[i];
+      const atelier   = ateliersDispos.find(a => a.id === atelierId);
+      const nomAtelier = atelier?.nom || '';
+
+      afficherMsg('msg-2', 'info', `⏳ Inscription ${i + 1}/${total} — ${nomAtelier}…`);
+
+      // Double vérification côté code (sécurité)
+      if (inscriptionsExist.has(atelierId)) {
+        nbDoublons++;
+        progressBar.style.width = Math.round(100 * (i + 1) / total) + '%';
+        continue;
+      }
+
+      await airtableFetch(
+        encodeURIComponent(CONFIG.TABLE_INSCRIPTIONS),
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            fields: {
+              'Membre':           [membreActuel.id],
+              'Atelier':          [atelierId],
+              'Date_Inscription': aujourd_hui,
+            }
+          })
+        }
+      );
+
+      inscriptionsExist.add(atelierId); // mise à jour état local
+      nbCrees++;
+      progressBar.style.width = Math.round(100 * (i + 1) / total) + '%';
+    }
+
+    // Message de résultat
+    let msg = '';
+    if (nbCrees > 0) {
+      msg += `✅ <strong>${nbCrees} nouvelle${nbCrees > 1 ? 's' : ''} inscription${nbCrees > 1 ? 's' : ''}</strong> ajoutée${nbCrees > 1 ? 's' : ''} avec succès pour <strong>${membreActuel.prenom} ${membreActuel.nom}</strong>.`;
+    }
+    if (nbDoublons > 0) {
+      msg += `${nbCrees > 0 ? '<br>' : ''}ℹ️ ${nbDoublons} atelier${nbDoublons > 1 ? 's' : ''} déjà inscrit${nbDoublons > 1 ? 's' : ''} ignoré${nbDoublons > 1 ? 's' : ''}.`;
+    }
+
+    afficherMsg('msg-2', nbCrees > 0 ? 'success' : 'warning', msg);
+
+    // Réinitialisation et retour à l'étape 1 après 3 secondes
+    if (nbCrees > 0) {
+      setTimeout(() => {
+        document.getElementById('f-email').value = '';
+        retourEtape1();
+      }, 3000);
+    } else {
+      // Pas de nouvelle inscription : juste rafraîchir l'affichage
+      afficherAteliers();
+    }
+
+  } catch(e) {
+    afficherMsg('msg-2', 'error', `❌ Erreur : ${e.message}`);
+    progressWrap.style.display = 'none';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `Confirmer les ajouts <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+}
+
+/* ── Touche Entrée sur email ──────────────────── */
+document.getElementById('f-email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') chercherMembre();
+});
+</script>
+</body>
+</html>
