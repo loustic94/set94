@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <title>Désinscription ateliers – Gestion SET</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:        #f5f3ee;
+      --surface:   #ffffff;
+      --border:    #ddd8ce;
+      --accent:    #2d5a3d;
+      --accent-lt: #e8f0ea;
+      --danger:    #c0392b;
+      --danger-lt: #fdecea;
+      --danger-bd: #f5b7b1;
+      --text:      #1a1a1a;
+      --muted:     #6b6560;
+      --radius:    10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 4rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2.8rem;
+      width: 100%;
+      max-width: 680px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.07);
+    }
+
+    .header { margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+    .header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.9rem;
+      color: var(--danger);
+      letter-spacing: -.5px;
+    }
+    .header p { margin-top: .45rem; color: var(--muted); font-size: .93rem; }
+
+    /* ─── ÉTAPES ─────────────────────────── */
+    .etape { display: none; }
+    .etape.active { display: block; }
+
+    .etape-titre {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      color: var(--danger);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .etape-badge {
+      background: var(--danger);
+      color: #fff;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      font-size: .8rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+      flex-shrink: 0;
+    }
+
+    /* ─── CHAMPS ─────────────────────────── */
+    .field { margin-bottom: 1.3rem; }
+    label {
+      display: block;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: .45rem;
+    }
+    label .req { color: var(--danger); margin-left: 2px; }
+    input[type="email"] {
+      width: 100%;
+      padding: .72rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .97rem;
+      color: var(--text);
+      background: var(--bg);
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(192,57,43,.1);
+      background: #fff;
+    }
+
+    /* ─── CARTE MEMBRE ───────────────────── */
+    .membre-card {
+      background: var(--danger-lt);
+      border: 1.5px solid var(--danger-bd);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.8rem;
+    }
+    .membre-avatar {
+      width: 44px; height: 44px;
+      background: var(--danger);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .membre-nom { font-weight: 600; font-size: 1rem; }
+    .membre-email-disp { font-size: .85rem; color: var(--muted); }
+
+    /* ─── AVERTISSEMENT ──────────────────── */
+    .avertissement {
+      background: #fef9e7;
+      border: 1.5px solid #f9e79f;
+      border-radius: var(--radius);
+      padding: .85rem 1rem;
+      font-size: .88rem;
+      color: #7d6608;
+      margin-bottom: 1.2rem;
+      display: flex;
+      gap: .6rem;
+      align-items: flex-start;
+    }
+
+    /* ─── LISTE INSCRIPTIONS ─────────────── */
+    .hint { font-size: .85rem; color: var(--muted); margin-bottom: 1rem; }
+
+    #inscriptions-list {
+      display: flex;
+      flex-direction: column;
+      gap: .55rem;
+    }
+
+    .inscription-item {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      padding: .8rem 1rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+      user-select: none;
+    }
+    .inscription-item:hover { border-color: var(--danger); background: var(--danger-lt); }
+    .inscription-item.selected {
+      border-color: var(--danger);
+      background: var(--danger-lt);
+    }
+
+    .inscription-item input[type="checkbox"] {
+      width: 16px; height: 16px;
+      accent-color: var(--danger);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .inscription-content { flex: 1; }
+    .inscription-atelier { font-weight: 600; font-size: .95rem; }
+    .inscription-meta { font-size: .82rem; color: var(--muted); margin-top: .15rem; }
+
+    .badge-actif {
+      font-size: .72rem;
+      background: #e8f5ec;
+      color: var(--accent);
+      border: 1px solid #a8d5b5;
+      padding: .15rem .5rem;
+      border-radius: 99px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .aucune-inscription {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem;
+      font-size: .95rem;
+      background: #f9f9f9;
+      border-radius: var(--radius);
+      border: 1px dashed var(--border);
+    }
+
+    .loading {
+      text-align: center;
+      color: var(--muted);
+      padding: 1.5rem;
+      font-size: .9rem;
+    }
+
+    /* ─── BOUTONS ────────────────────────── */
+    .btn-wrap {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      padding: .85rem 2rem;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .btn-danger:hover { background: #a93226; }
+    .btn-danger:disabled { background: #d5a09b; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      padding: .82rem 1.5rem;
+      border-radius: var(--radius);
+      font-family: 'DM Sans', sans-serif;
+      font-size: .95rem;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-secondary:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* ─── MESSAGES ───────────────────────── */
+    .msg {
+      display: none;
+      padding: 1rem 1.2rem;
+      border-radius: var(--radius);
+      font-size: .93rem;
+      line-height: 1.5;
+      margin-top: 1rem;
+    }
+    .msg.success { display: block; background: #e8f5ec; border: 1px solid #a8d5b5; color: var(--accent); }
+    .msg.error   { display: block; background: var(--danger-lt); border: 1px solid var(--danger-bd); color: var(--danger); }
+    .msg.info    { display: block; background: #eef4fb; border: 1px solid #b3d0ee; color: #1a5276; }
+
+    .progress-bar-wrap { display: none; background: var(--border); border-radius: 99px; height: 6px; margin-top: 1rem; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--danger); border-radius: 99px; width: 0%; transition: width .4s ease; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+    .spinner-dark { border-color: var(--border); border-top-color: var(--danger); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 520px) {
+      .card { padding: 1.8rem 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<script>
+  const CONFIG = {
+    TOKEN:              'pat05rfaq3m3jvyS9.7d1051cfed23d99c0dd8a8d2b15c37ecb2558cb93b3bfa045bdce60079513994',
+    BASE_ID:            'appSpAPuylGFhWFTt',
+    TABLE_MEMBRES:      'MEMBRES',
+    TABLE_INSCRIPTIONS: 'INSCRIPTIONS',
+  };
+</script>
+
+<div class="card">
+  <div class="header">
+    <h1>Désinscription ateliers</h1>
+    <p>Retrouvez votre compte via votre email, puis sélectionnez les ateliers dont vous souhaitez vous désinscrire.</p>
+  </div>
+
+  <!-- ── ÉTAPE 1 : Email ──────────────── -->
+  <div class="etape active" id="etape-1">
+    <div class="etape-titre">
+      <span class="etape-badge">1</span>
+      Votre adresse email
+    </div>
+
+    <div class="field">
+      <label>Email <span class="req">*</span></label>
+      <input type="email" id="f-email" placeholder="votre@email.com" />
+    </div>
+
+    <div id="msg-1" class="msg"></div>
+
+    <div class="btn-wrap" style="justify-content:flex-end">
+      <button class="btn-danger" id="btn-chercher" onclick="chercherMembre()">
+        Rechercher
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── ÉTAPE 2 : Inscriptions actives ── -->
+  <div class="etape" id="etape-2">
+    <div class="etape-titre">
+      <span class="etape-badge">2</span>
+      Ateliers à désinscrire
+    </div>
+
+    <!-- Carte membre -->
+    <div class="membre-card">
+      <div class="membre-avatar" id="membre-avatar">?</div>
+      <div>
+        <div class="membre-nom" id="membre-nom">—</div>
+        <div class="membre-email-disp" id="membre-email-disp">—</div>
+      </div>
+    </div>
+
+    <!-- Avertissement -->
+    <div class="avertissement">
+      <span style="font-size:1.1rem">⚠️</span>
+      <span>Cochez les ateliers dont vous souhaitez vous désinscrire. Le statut passera de <strong>Actif</strong> à <strong>Supprimé</strong>. Cette action peut être annulée par un responsable.</span>
+    </div>
+
+    <p class="hint">Seules vos inscriptions actuellement <strong>Actives</strong> sont affichées.</p>
+
+    <div id="inscriptions-list">
+      <div class="loading"><span class="spinner spinner-dark"></span> Chargement de vos inscriptions…</div>
+    </div>
+
+    <div class="progress-bar-wrap" id="progress-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <div id="msg-2" class="msg"></div>
+
+    <div class="btn-wrap">
+      <button class="btn-secondary" onclick="reinitialiser()">← Modifier l'email</button>
+      <button class="btn-danger" id="btn-desinscrire" onclick="soumettreDesinscriptions()">
+        Confirmer la désinscription
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── État global ──────────────────────────── */
+let membreActuel      = null;  // { id, nom, prenom, email }
+let inscriptionsActives = [];  // [{ inscriptionId, atelierId, nomAtelier, dateInscription }]
+
+/* ── API helper ───────────────────────────── */
+const API = 'https://api.airtable.com/v0';
+
+async function airtableFetch(endpoint, options = {}) {
+  const res = await fetch(`${API}/${CONFIG.BASE_ID}/${endpoint}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${CONFIG.TOKEN}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`[${res.status}] ${err.error?.message || JSON.stringify(err)}`);
+  }
+  return res.json();
+}
+
+function afficherMsg(id, type, html) {
+  const el = document.getElementById(id);
+  el.className = `msg ${type}`;
+  el.innerHTML = html;
+}
+function cacherMsg(id) {
+  document.getElementById(id).className = 'msg';
+}
+
+/* ── ÉTAPE 1 : Recherche membre ───────────── */
+async function chercherMembre() {
+  const email = document.getElementById('f-email').value.trim();
+  const btn   = document.getElementById('btn-chercher');
+  cacherMsg('msg-1');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    afficherMsg('msg-1', 'error', '⚠️ Veuillez saisir une adresse email valide.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Recherche…`;
+
+  try {
+    // Chercher le membre par email
+    const url = `${encodeURIComponent(CONFIG.TABLE_MEMBRES)}`
+      + `?filterByFormula=${encodeURIComponent(`{Email}="${email}"`)}`;
+    const data = await airtableFetch(url);
+
+    if (!data.records || data.records.length === 0) {
+      afficherMsg('msg-1', 'error',
+        `❌ Aucun membre trouvé pour <strong>${email}</strong>.<br>
+         <small>Vérifiez l'adresse email saisie.</small>`);
+      btn.disabled = false;
+      btn.innerHTML = `Rechercher <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
+      return;
+    }
+
+    const r = data.records[0];
+    membreActuel = {
+      id:     r.id,
+      nom:    r.fields['Nom']    || '',
+      prenom: r.fields['Prénom'] || '',
+      email:  r.fields['Email']  || email,
+    };
+
+    // Affichage carte membre
+    const initiales = ((membreActuel.prenom[0] || '') + (membreActuel.nom[0] || '')).toUpperCase();
+    document.getElementById('membre-avatar').textContent     = initiales;
+    document.getElementById('membre-nom').textContent        = `${membreActuel.prenom} ${membreActuel.nom}`;
+    document.getElementById('membre-email-disp').textContent = membreActuel.email;
+
+    // Charger inscriptions actives
+    await chargerInscriptionsActives();
+    afficherInscriptions();
+
+    document.getElementById('etape-1').classList.remove('active');
+    document.getElementById('etape-2').classList.add('active');
+
+  } catch(e) {
+    afficherMsg('msg-1', 'error', `❌ Erreur : ${e.message}`);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `Rechercher <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
+}
+
+/* ── Chargement des inscriptions actives ──── */
+async function chargerInscriptionsActives() {
+  inscriptionsActives = [];
+
+  // Récupère toutes les inscriptions et filtre côté client
+  let offset = '';
+  do {
+    const url = `${encodeURIComponent(CONFIG.TABLE_INSCRIPTIONS)}`
+      + (offset ? `?offset=${offset}` : '');
+    const data = await airtableFetch(url);
+
+    (data.records || []).forEach(r => {
+      const membres = r.fields['Membre'] || [];
+      const statut  = r.fields['Statut'] || '';
+
+      // Uniquement les inscriptions Actives de ce membre
+      if (membres.includes(membreActuel.id) && statut === 'Actif') {
+        const ateliers   = r.fields['Atelier']    || [];
+        const nomAtelier = r.fields['Nom_Atelier'] || ateliers[0] || '(atelier inconnu)';
+        const dateInscr  = r.fields['Date_Inscription'] || '';
+
+        inscriptionsActives.push({
+          inscriptionId: r.id,
+          nomAtelier:    Array.isArray(nomAtelier) ? nomAtelier[0] : nomAtelier,
+          dateInscription: dateInscr,
+        });
+      }
+    });
+
+    offset = data.offset || '';
+  } while (offset);
+
+  // Tri alphabétique par nom d'atelier
+  inscriptionsActives.sort((a, b) => a.nomAtelier.localeCompare(b.nomAtelier));
+  console.log(`✅ ${inscriptionsActives.length} inscription(s) active(s) trouvée(s)`);
+}
+
+/* ── Affichage des inscriptions ───────────── */
+function afficherInscriptions() {
+  const liste = document.getElementById('inscriptions-list');
+
+  if (inscriptionsActives.length === 0) {
+    liste.innerHTML = `<div class="aucune-inscription">
+      ✅ Aucune inscription active trouvée pour ce membre.
+    </div>`;
+    return;
+  }
+
+  liste.innerHTML = inscriptionsActives.map(insc => {
+    const dateFormatee = insc.dateInscription
+      ? new Date(insc.dateInscription).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' })
+      : '';
+
+    return `
+      <label class="inscription-item" id="lbl-${insc.inscriptionId}">
+        <input type="checkbox" value="${insc.inscriptionId}"
+          onchange="toggleInscription('${insc.inscriptionId}', this)" />
+        <div class="inscription-content">
+          <div class="inscription-atelier">${insc.nomAtelier}</div>
+          ${dateFormatee ? `<div class="inscription-meta">Inscrit(e) le ${dateFormatee}</div>` : ''}
+        </div>
+        <span class="badge-actif">Actif</span>
+      </label>`;
+  }).join('');
+}
+
+function toggleInscription(id, cb) {
+  document.getElementById('lbl-' + id).classList.toggle('selected', cb.checked);
+}
+
+/* ── Réinitialisation ─────────────────────── */
+function reinitialiser() {
+  membreActuel = null;
+  inscriptionsActives = [];
+  document.getElementById('f-email').value = '';
+  cacherMsg('msg-1');
+  cacherMsg('msg-2');
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('inscriptions-list').innerHTML =
+    '<div class="loading"><span class="spinner spinner-dark"></span> Chargement de vos inscriptions…</div>';
+  document.getElementById('etape-2').classList.remove('active');
+  document.getElementById('etape-1').classList.add('active');
+}
+
+/* ── Soumission des désinscriptions ───────── */
+async function soumettreDesinscriptions() {
+  const btn = document.getElementById('btn-desinscrire');
+  const progressWrap = document.getElementById('progress-wrap');
+  const progressBar  = document.getElementById('progress-bar');
+  cacherMsg('msg-2');
+
+  const inscriptionsChoisies = [...document.querySelectorAll('#inscriptions-list input[type="checkbox"]:checked')]
+    .map(cb => cb.value);
+
+  if (inscriptionsChoisies.length === 0) {
+    afficherMsg('msg-2', 'error', '⚠️ Veuillez sélectionner au moins un atelier à désinscrire.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spinner"></span> Traitement…`;
+  progressWrap.style.display = 'block';
+  progressBar.style.width = '0%';
+
+  const total = inscriptionsChoisies.length;
+  let nbTraites = 0;
+  const nomsSupprimes = [];
+
+  try {
+    for (let i = 0; i < total; i++) {
+      const inscriptionId = inscriptionsChoisies[i];
+      const insc = inscriptionsActives.find(x => x.inscriptionId === inscriptionId);
+      const nomAtelier = insc?.nomAtelier || '';
+
+      afficherMsg('msg-2', 'info', `⏳ Désinscription ${i + 1}/${total} — ${nomAtelier}…`);
+
+      // PATCH : on change uniquement le champ Statut → Supprimé
+      await airtableFetch(
+        `${encodeURIComponent(CONFIG.TABLE_INSCRIPTIONS)}/${inscriptionId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            fields: {
+              'Statut':              'Supprimé',
+              'Date_Désinscription': new Date().toISOString().split('T')[0],
+            }
+          })
+        }
+      );
+
+      nomsSupprimes.push(nomAtelier);
+      nbTraites++;
+      progressBar.style.width = Math.round(100 * (i + 1) / total) + '%';
+    }
+
+    // Message succès + bouton nouveau membre
+    const listeAteliers = nomsSupprimes.map(n => `<li>${n}</li>`).join('');
+    const boutonReset = `<br><button onclick="reinitialiser()" style="
+      background:var(--danger);color:#fff;border:none;padding:.6rem 1.4rem;
+      border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.9rem;
+      font-weight:600;cursor:pointer;margin-top:.8rem">
+      ↩ Traiter un autre membre
+    </button>`;
+
+    afficherMsg('msg-2', 'success',
+      `✅ <strong>${nbTraites} désinscription${nbTraites > 1 ? 's' : ''}</strong> effectuée${nbTraites > 1 ? 's' : ''} pour <strong>${membreActuel.prenom} ${membreActuel.nom}</strong> :<ul style="margin:.5rem 0 0 1.2rem">${listeAteliers}</ul>${boutonReset}`
+    );
+
+    // Retirer les inscriptions supprimées de la liste locale et rafraîchir
+    inscriptionsActives = inscriptionsActives.filter(
+      x => !inscriptionsChoisies.includes(x.inscriptionId)
+    );
+    afficherInscriptions();
+
+  } catch(e) {
+    afficherMsg('msg-2', 'error', `❌ Erreur : ${e.message}`);
+    progressWrap.style.display = 'none';
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = `Confirmer la désinscription <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+}
+
+/* ── Touche Entrée sur email ──────────────── */
+document.getElementById('f-email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') chercherMembre();
+});
+</script>
+</body>
+</html>
