@@ -506,13 +506,14 @@ async function chargerAteliersInscrits() {
         + `?fields[]=Membre&fields[]=Atelier&fields[]=Statut`
         + (offset ? `&offset=${offset}` : '');
       const data = await airtableFetch(url);
-      
+      /* ── Tableau statuts valides────────────────────────────── */
+        const statutsValides = ['Actif', 'Actif+'];
 
       (data.records || []).forEach(r => {
         const membres = r.fields['Membre'] || [];
         const statut  = r.fields['Statut'] || '';
-        const statutActif = statut === 'Actif' || statut === 'Actif+';
-        if (membres.includes(membreActuel.id) && statutActif) {
+        const statutsValides = ['Actif', 'Actif+'];
+        if (membres.includes(membreActuel.id) && statutsValides.includes(statut)) {
           const ateliers = r.fields['Atelier'] || [];
           ateliers.forEach(aid => ateliersInscrits.add(aid));
         }
