@@ -465,7 +465,9 @@ async function chargerInscriptionsActives() {
       const statut  = r.fields['Statut'] || '';
 
       // Uniquement les inscriptions Actives de ce membre
-      if (membres.includes(membreActuel.id) && statut === 'Actif') {
+      const statutsValides = ['Actif', 'Actif+'];
+      if (membres.includes(membreActuel.id) && statutsValides.includes(statut)) {
+      //if (membres.includes(membreActuel.id) && statut === 'Actif') {
         const ateliers   = r.fields['Atelier']    || [];
         const nomAtelier = r.fields['Nom_Atelier'] || ateliers[0] || '(atelier inconnu)';
         const dateInscr  = r.fields['Date_Inscription'] || '';
