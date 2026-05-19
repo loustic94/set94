@@ -506,11 +506,12 @@ async function chargerAteliersInscrits() {
         + `?fields[]=Membre&fields[]=Atelier&fields[]=Statut`
         + (offset ? `&offset=${offset}` : '');
       const data = await airtableFetch(url);
+      const statutActif = statut === 'Actif' || statut === 'Actif+';
 
       (data.records || []).forEach(r => {
         const membres = r.fields['Membre'] || [];
         const statut  = r.fields['Statut'] || '';
-        if (membres.includes(membreActuel.id) && statut === 'Actif') {
+        if (membres.includes(membreActuel.id) && statutActif) {
           const ateliers = r.fields['Atelier'] || [];
           ateliers.forEach(aid => ateliersInscrits.add(aid));
         }
