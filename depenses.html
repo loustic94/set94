@@ -54,35 +54,44 @@
 
     <div id="message"></div>
 
-    <script>
+   <script>
         document.getElementById('purchaseForm').addEventListener('submit', async function(e) {
             e.preventDefault(); // Empêche le rechargement de la page
 
-            // 1. Récupération et formatage des données
-            const data = {
-                "Atelier": document.getElementById('atelier').value,
-                "Qui demande ? (Identifiez-vous avec l'adresse gmail pour la réception de la validation)": document.getElementById('quiDemande').value,
-                "Quoi": document.getElementById('quoi').value,
-                "Question/Demande": document.getElementById('questionDemande').value,
-                "Montant si demande d'achat/remboursement/investissement": parseFloat(document.getElementById('montant').value),
-                "Lien vers document explicatif/Suivi de projet/facture d'achat": document.getElementById('lienDocument').value
-            };
+            // 1. Récupération des données du formulaire
+            const atelier = document.getElementById('atelier').value;
+            const quiDemande = document.getElementById('quiDemande').value;
+            const quoi = document.getElementById('quoi').value;
+            const questionDemande = document.getElementById('questionDemande').value;
+            const montant = parseFloat(document.getElementById('montant').value);
+            const lienDocument = document.getElementById('lienDocument').value;
 
-            // 2. URL de votre Webhook sécurisé (Make ou Zapier)
+            // 2. Formatage des données en "Form Data" (évite le blocage CORS de Zapier)
+            const formData = new URLSearchParams();
+            formData.append("Atelier", atelier);
+            formData.append("Qui demande ? (Identifiez-vous avec l'adresse gmail pour la réception de la validation)", quiDemande);
+            formData.append("Quoi", quoi);
+            formData.append("Question/Demande", questionDemande);
+            formData.append("Montant si demande d'achat/remboursement/investissement", montant);
+            formData.append("Lien vers document explicatif/Suivi de projet/facture d'achat", lienDocument);
+
+            // URL de votre Webhook Zapier
             const WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/5669844/4o5k41w/';
 
             const messageDiv = document.getElementById('message');
             messageDiv.innerText = "Envoi en cours...";
             messageDiv.style.color = "orange";
 
-            // 3. Envoi de la requête au Webhook
+            // 3. Envoi de la requête modifiée
             try {
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json' 
+                    body: formData, // On envoie le formulaire au lieu du JSON brut
+                    headers: {
+                        'Accept': 'application/json'
+                        // Surtout PAS de 'Content-Type': 'application/json' ici !
                     },
-                    body: JSON.stringify(data)
+                    mode: 'cors'
                 });
 
                 if (response.ok) {
@@ -102,3 +111,4 @@
     </script>
 </body>
 </html>
+
