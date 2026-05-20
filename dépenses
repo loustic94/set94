@@ -69,7 +69,7 @@
             };
 
             // 2. URL de votre Webhook sécurisé (Make ou Zapier)
-            const WEBHOOK_URL = 'VOTRE_URL_WEBHOOK_ICI';
+            const WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/5669844/4o5k41w/';
 
             const messageDiv = document.getElementById('message');
             messageDiv.innerText = "Envoi en cours...";
