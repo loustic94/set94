@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demande d'achat - Gestion SET</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; color: #333; background-color: #f9f9f9; }
+        .form-group { margin-bottom: 1.25rem; }
+        label { display: block; font-weight: bold; margin-bottom: 0.5rem; }
+        input, textarea { width: 100%; padding: 0.6rem; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 10pt; }
+        /* Style pour les champs désactivés */
+        input:disabled, textarea:disabled { background-color: #eee; cursor: not-allowed; opacity: 0.6; }
+        .info-choix { font-size: 0.85rem; color: #666; font-style: italic; margin-bottom: 0.5rem; }
+        button { padding: 0.75rem 1.5rem; background-color: #f1b000; color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 11pt; }
+        button:hover { background-color: #d99e00; }
+        #message { margin-top: 1rem; font-weight: bold; text-align: center; min-height: 1.2em; }
+    </style>
+</head>
+<body>
+
+    <h2>Nouvelle demande - Besoins Urgents!</h2>
+    
+    <form id="purchaseForm">
+        
+        <p class="info-choix">Veuillez renseigner l'Atelier OU le Cercle Projet (remplissez l'un des deux) :</p>
+        
+        <div class="form-group">
+            <label for="atelier">Atelier</label>
+            <input type="text" id="atelier" placeholder="Ex: Informatique, Jardin...">
+        </div>
+
+        <div class="form-group">
+            <label for="cercleProjet">ou bien Cercle Projet</label>
+            <input type="text" id="cercleProjet" placeholder="Ex: Transition numérique, Énergie...">
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #ddd; margin: 1.5rem 0;">
+
+        <div class="form-group">
+            <label for="quiDemande">Votre adresse Gmail (Qui demande ?)</label>
+            <input type="email" id="quiDemande" placeholder="votre.nom@gmail.com" required>
+        </div>
+
+        <div class="form-group">
+            <label for="quoi">Quoi (Résumé de l'objet)</label>
+            <input type="text" id="quoi" placeholder="Ex: Licence logiciel, Outils..." required>
+        </div>
+
+        <div class="form-group">
+            <label for="questionDemande">Question / Description de la demande</label>
+            <textarea id="questionDemande" rows="4" placeholder="Détaillez votre besoin ici..." required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="montant">Montant estimé (€)</label>
+            <input type="number" step="0.01" id="montant" placeholder="0.00" required>
+        </div>
+
+        <div class="form-group">
+            <label for="lienDocument">Lien vers document explicatif / Suivi / Facture</label>
+            <input type="url" id="lienDocument" placeholder="https://drive.google.com/...">
+        </div>
+
+        <button type="submit" id="submitBtn">Envoyer la demande</button>
+    </form>
+
+    <div id="message"></div>
+
+    <script>
+        const form = document.getElementById('purchaseForm');
+        const atelierInput = document.getElementById('atelier');
+        const cercleProjetInput = document.getElementById('cercleProjet');
+        const messageDiv = document.getElementById('message');
+
+        // --- LOGIQUE D'EXCLUSION MUTUELLE ---
+        
+        // Fonction pour gérer l'état des champs
+        function toggleInputs() {
+            if (atelierInput.value.trim() !== "") {
+                cercleProjetInput.disabled = true;
+                cercleProjetInput.placeholder = "Désactivé (Atelier rempli)";
+            } else if (cercleProjetInput.value.trim() !== "") {
+                atelierInput.disabled = true;
+                atelierInput.placeholder = "Désactivé (Cercle rempli)";
+            } else {
+                // Si les deux sont vides, on réactive tout
+                atelierInput.disabled = false;
+                cercleProjetInput.disabled = false;
+                atelierInput.placeholder = "Ex: Informatique, Jardin...";
+                cercleProjetInput.placeholder = "Ex: Transition numérique, Énergie...";
+            }
+        }
+
+        atelierInput.addEventListener('input', toggleInputs);
+        cercleProjetInput.addEventListener('input', toggleInputs);
+
+        // --- GESTION DE LA SOUMISSION ---
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // 1. Validation de sécurité : au moins l'un des deux doit être rempli
+            if (atelierInput.value.trim() === "" && cercleProjetInput.value.trim() === "") {
+                messageDiv.innerText = "⚠️ Veuillez renseigner soit un Atelier, soit un Cercle Projet.";
+                messageDiv.style.color = "red";
+                return;
+            }
+
+            // 2. Préparation des données pour Zapier (Format URLSearchParams)
+            const formData = new URLSearchParams();
+            formData.append("Atelier", atelierInput.value.trim());
+            formData.append("ou bien Cercle Projet", cercleProjetInput.value.trim());
+            formData.append("Qui demande ? (Identifiez-vous avec l'adresse gmail pour la réception de la validation)", document.getElementById('quiDemande').value);
+            formData.append("Quoi", document.getElementById('quoi').value);
+            formData.append("Question/Demande", document.getElementById('questionDemande').value);
+            formData.append("Montant si demande d'achat/remboursement/investissement", document.getElementById('montant').value);
+            formData.append("Lien vers document explicatif/Suivi de projet/facture d'achat", document.getElementById('lienDocument').value);
+
+            // URL du Webhook Zapier
+            const WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/5669844/4o5k41w/';
+
+            messageDiv.innerText = "Envoi en cours...";
+            messageDiv.style.color = "orange";
+
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' },
+                    mode: 'cors'
+                });
+
+                if (response.ok) {
+                    messageDiv.innerText = "✅ Votre demande a bien été enregistrée !";
+                    messageDiv.style.color = "green";
+                    
+                    // Reset du formulaire
+                    form.reset();
+                    // Forcer la réactivation des champs après le reset
+                    toggleInputs(); 
+                } else {
+                    messageDiv.innerText = "❌ Une erreur est survenue lors de la transmission.";
+                    messageDiv.style.color = "red";
+                }
+            } catch (error) {
+                console.error("Erreur réseau :", error);
+                messageDiv.innerText = "❌ Impossible de joindre le serveur de validation.";
+                messageDiv.style.color = "red";
+            }
+        });
+    </script>
+</body>
+</html>
