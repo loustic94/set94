@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SET - Demandes en attente de validation</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: #f4f6f5;
+    margin: 0;
+    padding: 20px;
+    color: #1f2a24;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  header {
+    background: #2e7d32;
+    color: white;
+    padding: 20px 24px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+  }
+  header h1 { margin: 0 0 4px 0; font-size: 20px; }
+  header p { margin: 0; opacity: 0.9; font-size: 14px; }
+  .card {
+    background: white;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .card h3 { margin: 0 0 6px 0; font-size: 16px; }
+  .meta { font-size: 13px; color: #666; margin-bottom: 10px; line-height: 1.5; }
+  .meta strong { color: #333; }
+  .montant {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  button {
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  button:hover { opacity: 0.85; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-approve { background: #2e7d32; color: white; }
+  .btn-refuse { background: #c62828; color: white; }
+  .btn-question { background: #ef6c00; color: white; }
+  .voted-tag {
+    display: inline-block;
+    background: #eee;
+    color: #555;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .loading, .empty, .error {
+    text-align: center;
+    padding: 40px 20px;
+    color: #777;
+  }
+  .error { color: #c62828; }
+  .doc-link { font-size: 13px; }
+  .doc-link a { color: #2e7d32; }
+  textarea.comment-box {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 50px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1 id="titre">Demandes en attente de validation</h1>
+    <p id="sousTitre">Chargement...</p>
+  </header>
+  <div id="content" class="loading">Chargement des demandes...</div>
+</div>
+
+<script>
+// ============================================
+// CONFIG - à adapter
+// ============================================
+const CONFIG = {
+  PAT: 'VOTRE_PAT_AIRTABLE',           // token avec lecture Besoins Urgents!/Valideurs achats, écriture Votes achats
+  BASE_ID: 'appXXXXXXXXXXXXXX',
+  TABLE_DEMANDES: 'Besoins Urgents!',
+  TABLE_VALIDEURS: 'Valideurs achats',
+  TABLE_VOTES: 'Votes achats',
+  // Champ de statut dans Besoins Urgents! - on cherche "En cours" dans le texte
+  // (plus robuste que comparer une chaîne exacte avec emoji genre "⏳ En cours")
+  CHAMP_STATUT_DEMANDE: 'Statut Automatique',
+  MOT_CLE_STATUT_OUVERT: 'En cours',
+  // Nom des champs liés dans Votes achats
+  CHAMP_LIEN_DEMANDE: 'Demandes_achats',
+  CHAMP_LIEN_VALIDEUR: 'Valideurs achats',
+  CHAMP_CHOIX: 'Décisions',
+  CHAMP_COMMENTAIRE: 'Commentaires',
+  // Valeurs EXACTES à écrire dans Décisions (doivent matcher les options Airtable au caractère près)
+  CHOIX_ACCEPTE: 'Accepté',
+  CHOIX_REFUSE: 'Refusé',
+  CHOIX_EXPLICATION: 'Demande explications',
+  // Champ texte "Demandeur" dans Besoins Urgents!, utilisé pour bloquer le vote
+  // si le valideur est aussi le demandeur (règle métier : incompatibilité)
+  CHAMP_DEMANDEUR_TEXTE: 'Demandeur',
+  // Lookup dans Votes achats donnant un nom lisible du valideur (ex: "Valideur 1")
+  CHAMP_CODE_VALIDEUR_LOOKUP: 'Code validateur (from Valideurs achats)',
+  // Champ date pour trier les demandes affichées, chronologiquement
+  CHAMP_DATE_DEMANDE: 'Date de la demande'
+};
+
+const API_BASE = `https://api.airtable.com/v0/${CONFIG.BASE_ID}`;
+const HEADERS = {
+  'Authorization': `Bearer ${CONFIG.PAT}`,
+  'Content-Type': 'application/json'
+};
+
+let valideurId = null;
+let valideurNom = '';
+let votesExistants = new Set(); // clés "demandeId" déjà votées par ce valideur
+let votesParDemande = {}; // demandeId -> [{decision, commentaire, codeValideur, estMonVote}]
+
+// ============================================
+// 1. Lecture du paramètre ?v= dans l'URL
+// ============================================
+function getValideurIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('v');
+}
+
+// ============================================
+// 2. Récupérer l'identité du valideur
+// ============================================
+async function chargerValideur(id) {
+  const res = await fetch(`${API_BASE}/${encodeURIComponent(CONFIG.TABLE_VALIDEURS)}/${id}`, {
+    headers: HEADERS
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const detail = err.error?.message || err.error?.type || `HTTP ${res.status}`;
+    throw new Error(`Valideur introuvable (${detail})`);
+  }
+  const data = await res.json();
+  return `${data.fields['Prénom'] || ''} ${data.fields['Nom'] || ''}`.trim();
+}
+
+// ============================================
+// 3. Récupérer les demandes encore ouvertes
+// ============================================
+async function chargerDemandesOuvertes() {
+  // On exclut les demandes "Validé" plutôt que de chercher "En cours" :
+  // ce dernier texte contient un caractère invisible (espace spécial, probablement)
+  // qui casse la comparaison. "Validé" est stable, donc on filtre par exclusion -
+  // un peu comme filtrer "tout sauf les lignes cochées" plutôt que deviner
+  // l'orthographe exacte de chaque état non coché.
+  const formula = encodeURIComponent(
+    `NOT(SEARCH("Validé", {${CONFIG.CHAMP_STATUT_DEMANDE}}) > 0)`
+  );
+  const sortParam = `&sort%5B0%5D%5Bfield%5D=${encodeURIComponent(CONFIG.CHAMP_DATE_DEMANDE)}&sort%5B0%5D%5Bdirection%5D=asc`;
+  const url = `${API_BASE}/${encodeURIComponent(CONFIG.TABLE_DEMANDES)}?filterByFormula=${formula}${sortParam}`;
+  const res = await fetch(url, { headers: HEADERS });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error('Erreur filterByFormula:', err, 'URL:', url);
+    throw new Error('Erreur chargement des demandes (' + (err.error?.message || res.status) + ')');
+  }
+  const data = await res.json();
+  console.log('Demandes trouvées:', data.records.length, data.records);
+  return data.records;
+}
+
+// ============================================
+// 4. Récupérer TOUS les votes déjà faits sur les demandes affichées
+//    (une seule requête groupée, plutôt qu'une par carte)
+// ============================================
+async function chargerTousLesVotes(demandeIds) {
+  if (demandeIds.length === 0) return;
+
+  const conditions = demandeIds
+    .map(id => `FIND("${id}", ARRAYJOIN({${CONFIG.CHAMP_LIEN_DEMANDE}}))`)
+    .join(',');
+  const formula = encodeURIComponent(`OR(${conditions})`);
+
+  const res = await fetch(
+    `${API_BASE}/${encodeURIComponent(CONFIG.TABLE_VOTES)}?filterByFormula=${formula}`,
+    { headers: HEADERS }
+  );
+  if (!res.ok) return; // pas bloquant : sans ça on affiche juste les cartes sans historique
+
+  const data = await res.json();
+  data.records.forEach(r => {
+    const demandeLink = r.fields[CONFIG.CHAMP_LIEN_DEMANDE];
+    const valideurLink = r.fields[CONFIG.CHAMP_LIEN_VALIDEUR];
+    if (!demandeLink || demandeLink.length === 0) return;
+
+    const demandeId = demandeLink[0];
+    const estMonVote = valideurLink && valideurLink.includes(valideurId);
+
+    if (estMonVote) votesExistants.add(demandeId);
+
+    if (!votesParDemande[demandeId]) votesParDemande[demandeId] = [];
+    votesParDemande[demandeId].push({
+      decision: r.fields[CONFIG.CHAMP_CHOIX] || '',
+      commentaire: r.fields[CONFIG.CHAMP_COMMENTAIRE] || '',
+      codeValideur: r.fields[CONFIG.CHAMP_CODE_VALIDEUR_LOOKUP] || 'Valideur',
+      estMonVote
+    });
+  });
+}
+
+// ============================================
+// 5. Enregistrer un vote
+// ============================================
+async function enregistrerVote(demandeId, choix, commentaire) {
+  const fields = {
+    [CONFIG.CHAMP_LIEN_DEMANDE]: [demandeId],
+    [CONFIG.CHAMP_LIEN_VALIDEUR]: [valideurId],
+    [CONFIG.CHAMP_CHOIX]: choix
+  };
+  if (commentaire) {
+    fields[CONFIG.CHAMP_COMMENTAIRE] = commentaire;
+  }
+
+  const res = await fetch(`${API_BASE}/${encodeURIComponent(CONFIG.TABLE_VOTES)}`, {
+    method: 'POST',
+    headers: HEADERS,
+    body: JSON.stringify({ fields })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'Erreur lors de l\'enregistrement du vote');
+  }
+  return res.json();
+}
+
+// ============================================
+// 6. Rendu d'une carte demande
+// ============================================
+function normaliser(str) {
+  return (str || '').trim().toLowerCase();
+}
+
+// Règle métier : le valideur ne peut pas voter sur sa propre demande.
+// Comparaison texte (nom complet) car "Demandeur" est un champ texte libre
+// dans Besoins Urgents! - si un jour ce champ devient un lien vers la même
+// table que les valideurs, mieux vaut comparer les IDs directement (plus fiable
+// qu'une comparaison de chaînes, comme une clé primaire vs un RECHERCHEV sur un nom).
+function estIncompatible(demandeurTexte) {
+  return normaliser(demandeurTexte) === normaliser(valideurNom);
+}
+
+function renderDemandeCard(record) {
+  const f = record.fields;
+  const dejaVote = votesExistants.has(record.id);
+  const incompatible = estIncompatible(f[CONFIG.CHAMP_DEMANDEUR_TEXTE]);
+
+  const montant = f['Montant si demande d\'achat/remboursement/investissement'];
+  const lienDoc = f['Lien vers document explicatif/Suivi de projet/facture d\'achat'];
+
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  card.innerHTML = `
+    <h3>${escapeHtml(f['Quoi'] || 'Sans titre')}</h3>
+    <div class="meta">
+      <strong>Demandeur :</strong> ${escapeHtml(f['Demandeur'] || '—')}<br>
+      <strong>Atelier / Cercle :</strong> ${escapeHtml(f['Atelier'] || f['ou bien Cercle Projet'] || '—')}<br>
+      ${f['Question/Demande'] ? `<strong>Détail :</strong> ${escapeHtml(f['Question/Demande'])}<br>` : ''}
+      ${lienDoc ? `<span class="doc-link"><a href="${escapeAttr(lienDoc)}" target="_blank">Voir le document / la facture</a></span>` : ''}
+    </div>
+    ${montant ? `<div class="montant">${montant} €</div>` : ''}
+    <div class="autres-votes"></div>
+    <div class="vote-zone"></div>
+  `;
+
+  const autresVotesZone = card.querySelector('.autres-votes');
+  const votesIci = votesParDemande[record.id] || [];
+  if (votesIci.length > 0) {
+    const icone = (d) => d === CONFIG.CHOIX_ACCEPTE ? '✓' : d === CONFIG.CHOIX_REFUSE ? '✗' : '?';
+    const couleur = (d) => d === CONFIG.CHOIX_ACCEPTE ? '#2e7d32' : d === CONFIG.CHOIX_REFUSE ? '#c62828' : '#ef6c00';
+    autresVotesZone.innerHTML = `
+      <div style="background:#f7f7f7;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;">
+        <strong style="display:block;margin-bottom:6px;color:#555;">Réponses déjà enregistrées :</strong>
+        ${votesIci.map(v => `
+          <div style="margin-bottom:4px;">
+            <span style="color:${couleur(v.decision)};font-weight:600;">${icone(v.decision)} ${escapeHtml(v.decision)}</span>
+            <span style="color:#888;"> — ${v.estMonVote ? 'vous' : escapeHtml(v.codeValideur)}</span>
+            ${v.commentaire ? `<div style="color:#666;font-style:italic;margin-left:14px;">"${escapeHtml(v.commentaire)}"</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  const zone = card.querySelector('.vote-zone');
+
+  if (incompatible) {
+    zone.innerHTML = `<span class="voted-tag">🚫 Vous êtes le demandeur : vous ne pouvez pas voter sur cette demande</span>`;
+  } else if (dejaVote) {
+    zone.innerHTML = `<span class="voted-tag">✓ Vous avez déjà répondu à cette demande</span>`;
+  } else {
+    const commentBox = document.createElement('textarea');
+    commentBox.className = 'comment-box';
+    commentBox.placeholder = 'Commentaire ou justification (recommandé)...';
+
+    const confirmZone = document.createElement('div');
+    confirmZone.style.display = 'none';
+    confirmZone.style.marginTop = '8px';
+    confirmZone.innerHTML = `
+      <button class="btn-confirm" style="background:#1565c0;color:white;">Envoyer ma décision</button>
+      <button class="btn-cancel" style="background:#e0e0e0;color:#333;">Annuler</button>
+    `;
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    actions.innerHTML = `
+      <button class="btn-approve">✓ Approuver</button>
+      <button class="btn-refuse">✗ Refuser</button>
+      <button class="btn-question">? Demander explication</button>
+    `;
+
+    let choixEnAttente = null;
+
+    async function envoyerVote(choix) {
+      [...actions.querySelectorAll('button'), ...confirmZone.querySelectorAll('button')]
+        .forEach(b => b.disabled = true);
+      try {
+        await enregistrerVote(record.id, choix, commentBox.value.trim());
+        zone.innerHTML = `<span class="voted-tag">✓ Vote enregistré : ${choix}</span>`;
+      } catch (e) {
+        alert('Erreur : ' + e.message);
+        [...actions.querySelectorAll('button'), ...confirmZone.querySelectorAll('button')]
+          .forEach(b => b.disabled = false);
+      }
+    }
+
+    actions.querySelector('.btn-approve').addEventListener('click', () => envoyerVote(CONFIG.CHOIX_ACCEPTE));
+
+    actions.querySelector('.btn-refuse').addEventListener('click', () => {
+      choixEnAttente = CONFIG.CHOIX_REFUSE;
+      actions.style.display = 'none';
+      commentBox.style.display = 'block';
+      confirmZone.style.display = 'block';
+      commentBox.focus();
+    });
+
+    actions.querySelector('.btn-question').addEventListener('click', () => {
+      choixEnAttente = CONFIG.CHOIX_EXPLICATION;
+      actions.style.display = 'none';
+      commentBox.style.display = 'block';
+      confirmZone.style.display = 'block';
+      commentBox.focus();
+    });
+
+    confirmZone.querySelector('.btn-confirm').addEventListener('click', () => envoyerVote(choixEnAttente));
+    confirmZone.querySelector('.btn-cancel').addEventListener('click', () => {
+      choixEnAttente = null;
+      actions.style.display = 'flex';
+      commentBox.style.display = 'none';
+      confirmZone.style.display = 'none';
+      commentBox.value = '';
+    });
+
+    zone.appendChild(commentBox);
+    zone.appendChild(confirmZone);
+    zone.appendChild(actions);
+  }
+
+  return card;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+function escapeAttr(str) {
+  return (str || '').replace(/"/g, '&quot;');
+}
+
+// ============================================
+// 7. Initialisation
+// ============================================
+async function init() {
+  const content = document.getElementById('content');
+  valideurId = getValideurIdFromUrl();
+
+  if (!valideurId) {
+    content.className = 'error';
+    content.innerHTML = 'Lien invalide : identifiant de valideur manquant.<br>Merci de réutiliser le lien qui vous a été envoyé par email.';
+    return;
+  }
+
+  try {
+    valideurNom = await chargerValideur(valideurId);
+    document.getElementById('sousTitre').textContent = `Bonjour ${valideurNom}`;
+
+    const demandes = await chargerDemandesOuvertes();
+    await chargerTousLesVotes(demandes.map(d => d.id));
+
+    content.innerHTML = '';
+    content.className = '';
+
+    if (demandes.length === 0) {
+      content.className = 'empty';
+      content.textContent = 'Aucune demande en attente pour le moment.';
+      return;
+    }
+
+    demandes.forEach(rec => content.appendChild(renderDemandeCard(rec)));
+
+  } catch (e) {
+    content.className = 'error';
+    content.textContent = 'Erreur : ' + e.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
