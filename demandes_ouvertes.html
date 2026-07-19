@@ -103,32 +103,28 @@
 // CONFIG - à adapter
 // ============================================
 const CONFIG = {
-  PAT: 'VOTRE_PAT_AIRTABLE',           // token avec lecture Besoins Urgents!/Valideurs achats, écriture Votes achats
-  BASE_ID: 'appXXXXXXXXXXXXXX',
+  PAT: 'patFVIWjMv9bfvuKo.cd296465506140956e33947541af5f0f9df990b267cadad0681421823217fe8d',           // token avec lecture Besoins Urgents!/Valideurs achats, écriture Votes achats
+  BASE_ID: 'appSpAPuylGFhWFTt',
   TABLE_DEMANDES: 'Besoins Urgents!',
   TABLE_VALIDEURS: 'Valideurs achats',
   TABLE_VOTES: 'Votes achats',
-  // Champ de statut dans Besoins Urgents! - on cherche "En cours" dans le texte
-  // (plus robuste que comparer une chaîne exacte avec emoji genre "⏳ En cours")
+  // Nom exact du champ de statut dans Besoins Urgents! et la valeur qui signifie "encore ouvert"
   CHAMP_STATUT_DEMANDE: 'Statut Automatique',
-  MOT_CLE_STATUT_OUVERT: 'En cours',
+  VALEUR_STATUT_OUVERT: '.🕝En cours',
   // Nom des champs liés dans Votes achats
   CHAMP_LIEN_DEMANDE: 'Demandes_achats',
   CHAMP_LIEN_VALIDEUR: 'Valideurs achats',
-  CHAMP_CHOIX: 'Décisions',
+  CHAMP_CHOIX: 'Décisions',            // adapter au nom exact du champ choix (single select) dans Votes achats
   CHAMP_COMMENTAIRE: 'Commentaires',
-  // Valeurs EXACTES à écrire dans Décisions (doivent matcher les options Airtable au caractère près)
+    // Valeurs EXACTES à écrire dans Décisions (doivent matcher les options Airtable au caractère près)
   CHOIX_ACCEPTE: 'Accepté',
   CHOIX_REFUSE: 'Refusé',
   CHOIX_EXPLICATION: 'Demande explications',
   // Champ texte "Demandeur" dans Besoins Urgents!, utilisé pour bloquer le vote
   // si le valideur est aussi le demandeur (règle métier : incompatibilité)
-  CHAMP_DEMANDEUR_TEXTE: 'Demandeur',
-  // Lookup dans Votes achats donnant un nom lisible du valideur (ex: "Valideur 1")
-  CHAMP_CODE_VALIDEUR_LOOKUP: 'Code validateur (from Valideurs achats)',
-  // Champ date pour trier les demandes affichées, chronologiquement
-  CHAMP_DATE_DEMANDE: 'Date de la demande'
+  CHAMP_DEMANDEUR_TEXTE: 'Demandeur'
 };
+
 
 const API_BASE = `https://api.airtable.com/v0/${CONFIG.BASE_ID}`;
 const HEADERS = {
