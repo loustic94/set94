@@ -15,8 +15,8 @@
 // CONFIG - à adapter à vos noms de champs exacts
 // ============================================
 const CONFIG = {
-  AIRTABLE_PAT: 'VOTRE_PAT_AIRTABLE',
-  BASE_ID: 'appXXXXXXXXXXXXXX',
+  AIRTABLE_PAT: 'patFVIWjMv9bfvuKo.cd296465506140956e33947541af5f0f9df990b267cadad0681421823217fe8d',
+  BASE_ID: 'appSpAPuylGFhWFTt',
   TABLE_MEMBRES: 'Membres',
 
   CHAMP_STATUT: 'Statut',
@@ -28,7 +28,7 @@ const CONFIG = {
   // Fichier HTML externe servant de corps de mail (ex: hébergé sur GitHub Pages)
   URL_TEMPLATE_HTML: 'https://loustic94.github.io/set94/mail_bienvenue_saison.html',
   SUJET_MAIL: 'Bienvenue pour la nouvelle saison SET !',
-  NOM_EXPEDITEUR: 'SET - Société en Transition',
+  NOM_EXPEDITEUR: 'SET94 - Société en Transition',
 
   // Pause entre deux envois, pour rester sous les limites de débit Airtable/Gmail
   DELAI_ENTRE_ENVOIS_MS: 1100
