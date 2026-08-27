@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SET — Diffuser un message à mon atelier</title>
+<style>
+  :root {
+    --accent: #2f6b4f;
+    --accent-light: #e8f2ec;
+    --text: #1f2b24;
+    --muted: #667066;
+    --border: #d9e1dc;
+    --bg: #fafbf9;
+    --error: #b3432f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .card {
+    width: 100%;
+    max-width: 560px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+  }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin: 0 0 24px; }
+  .atelier-banner {
+    background: var(--accent-light);
+    color: var(--accent);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    margin-top: 18px;
+  }
+  input[type="text"], textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    color: var(--text);
+  }
+  textarea { min-height: 140px; resize: vertical; }
+  input:focus, textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  button {
+    margin-top: 24px;
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .message {
+    margin-top: 16px;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+  .message.ok { background: var(--accent-light); color: var(--accent); }
+  .message.err { background: #fbeceA; color: var(--error); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>Diffuser un message à mon atelier</h1>
+  <p class="subtitle">Le message sera envoyé en copie cachée à tous les membres inscrits. Toute réponse vous reviendra directement.</p>
+
+  <div id="atelier-banner" class="atelier-banner">Chargement de l'atelier…</div>
+
+  <form id="form" class="hidden">
+    <label for="nom">Votre nom (animateur)</label>
+    <input type="text" id="nom" required>
+
+    <label for="message">Message à diffuser</label>
+    <textarea id="message" required placeholder="Écrivez votre message ici…"></textarea>
+
+    <button type="submit" id="submit-btn">Envoyer la demande</button>
+  </form>
+
+  <div id="result"></div>
+</div>
+
+<script>
+  // ---- CONFIG (même pattern que les autres pages du portail) ----
+  const CONFIG = {
+    BASEROW_TOKEN: 'TON_TOKEN_API_ICI',
+    API_URL: 'https://api.baserow.io/api/database/rows/table/',
+    TABLE_DEMANDES_ENVOI: 1160720,
+    TABLE_ATELIERS: 1010821,
+    STATUT_INITIAL: 'En attente' // doit correspondre exactement à l'option du champ Statut
+  };
+
+  const params = new URLSearchParams(window.location.search);
+  const atelierId = params.get('atelier_id');
+  const nomPrerempli = params.get('nom');
+
+  const bannerEl = document.getElementById('atelier-banner');
+  const formEl = document.getElementById('form');
+  const resultEl = document.getElementById('result');
+  const submitBtn = document.getElementById('submit-btn');
+
+  function headers() {
+    return {
+      'Authorization': `Token ${CONFIG.BASEROW_TOKEN}`,
+      'Content-Type': 'application/json'
+    };
+  }
+
+  async function init() {
+    if (!atelierId) {
+      bannerEl.textContent = "Lien invalide : identifiant d'atelier manquant. Contactez l'administrateur du portail.";
+      bannerEl.style.color = 'var(--error)';
+      bannerEl.style.background = '#fbeceA';
+      return;
+    }
+
+    try {
+      const res = await fetch(`${CONFIG.API_URL}${CONFIG.TABLE_ATELIERS}/${atelierId}/?user_field_names=true`, {
+        headers: headers()
+      });
+      if (!res.ok) throw new Error('Atelier introuvable (' + res.status + ')');
+      const atelier = await res.json();
+
+      bannerEl.textContent = `Atelier : ${atelier['Atelier']}`;
+      if (nomPrerempli) document.getElementById('nom').value = nomPrerempli;
+      formEl.classList.remove('hidden');
+    } catch (err) {
+      bannerEl.textContent = "Impossible de charger l'atelier : " + err.message;
+      bannerEl.style.color = 'var(--error)';
+      bannerEl.style.background = '#fbeceA';
+    }
+  }
+
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Envoi en cours…';
+    resultEl.innerHTML = '';
+
+    const payload = {
+      'Nom': document.getElementById('nom').value,
+      'Corps du mail': document.getElementById('message').value,
+      'Atelier': [parseInt(atelierId, 10)],
+      'Statut': CONFIG.STATUT_INITIAL
+    };
+
+    try {
+      const res = await fetch(`${CONFIG.API_URL}${CONFIG.TABLE_DEMANDES_ENVOI}/?user_field_names=true`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
+      resultEl.innerHTML = '<div class="message ok">Votre demande a bien été enregistrée. Le message sera diffusé sous peu.</div>';
+      formEl.reset();
+      formEl.classList.add('hidden');
+    } catch (err) {
+      resultEl.innerHTML = '<div class="message err">Erreur lors de l\'envoi : ' + err.message + '</div>';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Envoyer la demande';
+    }
+  });
+
+  init();
+</script>
+
+</body>
+</html>
